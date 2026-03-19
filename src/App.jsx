@@ -363,6 +363,31 @@ const App = () => {
         setCurrentView('dashboard');
     };
 
+    const forceCloudSync = async () => {
+        const btn = document.getElementById('sync-btn');
+        if (btn) btn.innerText = '☁️ Syncing...';
+        
+        try {
+            await saveToDB('players', players);
+            await saveToDB('rounds', rounds);
+            await saveToDB('tournamentStarted', tournamentStarted);
+            await saveToDB('tournamentMeta', tournamentMeta);
+            
+            if (btn) {
+                btn.innerText = '✅ Synced!';
+                setTimeout(() => {
+                     if (document.getElementById('sync-btn')) document.getElementById('sync-btn').innerText = '☁️ Cloud Sync';
+                }, 2000);
+            }
+        } catch(e) {
+            if (btn) btn.innerText = '❌ Failed';
+            setTimeout(() => {
+                 if (document.getElementById('sync-btn')) document.getElementById('sync-btn').innerText = '☁️ Cloud Sync';
+            }, 2000);
+            alert("Cloud database sync failed. Check your internet connection.");
+        }
+    };
+
     const fetchFidePlayer = async () => {
         if (!fideId) return;
         setIsFetchingFide(true);
@@ -437,6 +462,15 @@ const App = () => {
                         accept=".json"
                         onChange={importData}
                     />
+                </div>
+
+                <div 
+                    id="sync-btn"
+                    className="ribbon-item" 
+                    onClick={forceCloudSync}
+                    style={{ background: 'var(--primary)', color: '#000', fontWeight: 'bold' }}
+                >
+                    ☁️ Cloud Sync
                 </div>
 
                 {navItems.map(item => (
