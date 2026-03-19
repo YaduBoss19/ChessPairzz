@@ -89,9 +89,21 @@ const App = () => {
     }, [players, rounds, tournamentStarted, tournamentMeta, users, currentUser, theme, dbInitialized]);
 
     // --- Actions ---
+    const enforceCapacity = (addingCount) => {
+        if (!currentUser?.subscription || currentUser.subscription !== 'Pro License') {
+            if (players.length + addingCount > 10) {
+                alert(`Free Trial Limit Reached! You can only add up to 10 players on the free tier.\n\nPlease visit the Pricing tab to purchase a Lifetime License for unlimited players.`);
+                return false;
+            }
+        }
+        return true;
+    };
+
     const addPlayer = (e) => {
         e.preventDefault();
         if (!playerName) return;
+        if (!enforceCapacity(1)) return;
+
         const newPlayer = {
             id: Date.now().toString(),
             name: playerName,
@@ -107,6 +119,11 @@ const App = () => {
     const bulkAddPlayers = () => {
         if (!bulkText.trim()) return;
         const lines = bulkText.split('\n');
+        
+        // Calculate valid lines before enforcing capacity
+        const validLineCount = lines.filter(l => l.trim().length > 0).length;
+        if (!enforceCapacity(validLineCount)) return;
+
         const newPlayersList = [...players];
 
         lines.forEach(line => {
@@ -505,7 +522,7 @@ const App = () => {
                     />
                 )}
                 {currentView === 'about' && <AboutView />}
-                {currentView === 'pricing' && <PricingView onPlanSelect={handlePlanSelect} />}
+                {currentView === 'pricing' && <PricingView onPlanSelect={handlePlanSelect} currentUser={currentUser} />}
                 {currentView === 'details' && (
                     <TournamentDetailsView
                         tournamentMeta={tournamentMeta}
@@ -1081,73 +1098,64 @@ const TournamentDetailsView = ({ tournamentMeta, setTournamentMeta, setCurrentVi
     </div>
 );
 
-const PricingView = ({ onPlanSelect }) => (
-    <div className="fade-in" style={{ textAlign: 'center' }}>
-        <h2 className="neon-text" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Choose Your Plan</h2>
-        <p style={{ opacity: 0.7, marginBottom: '3rem' }}>Unlock advanced pairing features and tournament management tools.</p>
+const PricingView = ({ onPlanSelect, currentUser }) => {
+    const isPro = currentUser?.subscription === 'Pro License';
+    
+    return (
+        <div className="fade-in" style={{ textAlign: 'center' }}>
+            <h2 className="neon-text" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
+                {isPro ? "You are Pro! 🏆" : "Upgrade Your Software"}
+            </h2>
+            <p style={{ opacity: 0.7, marginBottom: '3rem' }}>
+                {isPro ? "Thank you for supporting ChessPairzzz. All limits are permanently unlocked." : "Unlock advanced pairing features and endless players for life."}
+            </p>
 
-        <div className="pricing-grid">
-            <div className="glass-card pricing-card">
-                <h3>Basic</h3>
-                <div className="price">$0<span>/mo</span></div>
-                <div className="inr-price">₹0<span>/mo</span></div>
-                <p style={{ opacity: 0.6 }}>Perfect for local clubs</p>
-                <ul className="features-list">
-                    <li>Up to 20 players</li>
-                    <li>Basic Swiss Pairing</li>
-                    <li>Standings Export (JSON)</li>
-                    <li>Community Support</li>
-                </ul>
-                <button
-                    className="btn-ghost"
-                    onClick={() => onPlanSelect({ name: 'Basic', price: '$0', inrPrice: '₹0' })}
-                >
-                    Get Started
-                </button>
-            </div>
+            <div className="pricing-grid" style={{ display: 'flex', justifyContent: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+                <div className="glass-card pricing-card" style={{ maxWidth: '350px' }}>
+                    <h3>Free Trial</h3>
+                    <div className="price">$0<span>/forever</span></div>
+                    <div className="inr-price">₹0</div>
+                    <p style={{ opacity: 0.6 }}>Test out the software limitations</p>
+                    <ul className="features-list">
+                        <li>Maximum 10 Players</li>
+                        <li>Basic Swiss Pairing</li>
+                        <li>Round Robin Support</li>
+                        <li>Excel Standings Export</li>
+                    </ul>
+                    <button className="btn-ghost" disabled>
+                        Included Default
+                    </button>
+                </div>
 
-            <div className="glass-card pricing-card popular">
-                <div className="popular-badge">Most Popular</div>
-                <h3 className="neon-text">Pro</h3>
-                <div className="price">$19<span>/mo</span></div>
-                <div className="inr-price">₹1599<span>/mo</span></div>
-                <p style={{ opacity: 0.6 }}>For professional organizers</p>
-                <ul className="features-list">
-                    <li>Unlimited Players</li>
-                    <li>Full FIDE Tie-Breaks</li>
-                    <li>Excel/CSV Export</li>
-                    <li>Premium PDF Printing</li>
-                    <li>Email Support</li>
-                </ul>
-                <button
-                    className="pricing-btn"
-                    onClick={() => onPlanSelect({ name: 'Pro', price: '$19', inrPrice: '₹1599' })}
-                >
-                    Start 7-Day Trial
-                </button>
-            </div>
-
-            <div className="glass-card pricing-card">
-                <h3>Elite</h3>
-                <div className="price">$49<span>/mo</span></div>
-                <div className="inr-price">₹3999<span>/mo</span></div>
-                <p style={{ opacity: 0.6 }}>For large-scale festivals</p>
-                <ul className="features-list">
-                    <li>Multi-Section Tournaments</li>
-                    <li>Live Result Broadcasting</li>
-                    <li>API Access</li>
-                    <li>Custom Branding</li>
-                    <li>24/7 Priority Support</li>
-                </ul>
-                <button
-                    className="btn-ghost"
-                    onClick={() => onPlanSelect({ name: 'Elite', price: '$49', inrPrice: '₹3999' })}
-                >
-                    Contact Sales
-                </button>
+                <div className="glass-card pricing-card popular" style={{ maxWidth: '350px' }}>
+                    <div className="popular-badge">Lifetime Access</div>
+                    <h3 className="neon-text">Pro License</h3>
+                    <div className="price">$59<span>/once</span></div>
+                    <div className="inr-price">₹4999<span>/life</span></div>
+                    <p style={{ opacity: 0.6 }}>For serious organizers and clubs</p>
+                    <ul className="features-list">
+                        <li>Unlimited Tournament Players</li>
+                        <li>Full FIDE Tie-Breaks</li>
+                        <li>Printable Match Slips</li>
+                        <li>Printable Certificates</li>
+                        <li>Premium Cloud Syncing</li>
+                    </ul>
+                    {isPro ? (
+                        <button className="pricing-btn" disabled style={{ background: '#10b981', color: '#fff', border: 'none' }}>
+                            Activated ✅
+                        </button>
+                    ) : (
+                        <button
+                            className="pricing-btn"
+                            onClick={() => onPlanSelect({ name: 'Pro License', price: '$59', inrPrice: '₹4999' })}
+                        >
+                            Buy Lifetime Access
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 export default App;

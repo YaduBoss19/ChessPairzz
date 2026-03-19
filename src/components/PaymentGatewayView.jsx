@@ -98,7 +98,8 @@ const PaymentGatewayView = ({ plan, onPaymentSuccess, onCancel }) => {
                     </div>
                 )}
 
-                <div className="security-badges" style={{ marginTop: '2rem', display: 'flex', gap: '1.5rem', justifyContent: 'center', opacity: 0.4, fontSize: '0.8rem' }}>
+                <div className="security-badges" style={{ marginTop: '2rem', display: 'flex', gap: '1.5rem', justifyContent: 'center', opacity: 0.6, fontSize: '0.8rem' }}>
+                    <span>📱 GPay / UPI Supported</span>
                     <span>🔒 256-bit SSL</span>
                     <span>✅ PCI-DSS Compliant</span>
                 </div>
