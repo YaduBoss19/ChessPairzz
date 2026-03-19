@@ -352,10 +352,11 @@ const App = () => {
     };
 
     const handlePaymentSuccess = (plan) => {
+        const safeUser = currentUser || { id: 'guest', name: 'Guest User' };
         const updatedUsers = users.map(u =>
-            u.id === currentUser.id ? { ...u, subscription: plan.name } : u
+            u.id === safeUser.id ? { ...u, subscription: plan.name } : u
         );
-        const updatedUser = { ...currentUser, subscription: plan.name };
+        const updatedUser = { ...safeUser, subscription: plan.name };
         setUsers(updatedUsers);
         setCurrentUser(updatedUser);
         setSelectedPlan(null);
@@ -393,9 +394,10 @@ const App = () => {
         { id: 'about', label: 'About' }
     ];
 
-    if (!currentUser) {
-        return <AuthView onLogin={handleLogin} onRegister={handleRegister} />;
-    }
+    // TEMPORARILY DISABLED for Razorpay Team Verification
+    // if (!currentUser) {
+    //     return <AuthView onLogin={handleLogin} onRegister={handleRegister} />;
+    // }
 
     if (selectedPlan) {
         return (
@@ -449,8 +451,8 @@ const App = () => {
 
                 <div className="profile-section">
                     <div className="user-badge">
-                        <div className="user-avatar">{currentUser.name.charAt(0).toUpperCase()}</div>
-                        <span>{currentUser.name}</span>
+                        <div className="user-avatar">{currentUser?.name?.charAt(0).toUpperCase() || 'G'}</div>
+                        <span>{currentUser?.name || 'Guest User'}</span>
                     </div>
                     <button className="btn-icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} style={{ fontSize: '1.2rem', marginLeft: '0.5rem', border: 'none', background: 'transparent' }}>
                         {theme === 'light' ? '🌙' : '☀️'}
