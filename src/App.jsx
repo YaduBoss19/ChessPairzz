@@ -665,10 +665,10 @@ const DashboardView = ({
                     <div className="glass-card">
                         <h3 className="neon-text">Player Setup</h3>
                         
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
-                            <input type="number" placeholder="Enter FIDE ID (Optional for Quick Fetch)" value={fideId} onChange={e => setFideId(e.target.value)} style={{ marginBottom: 0, flex: 1 }} />
-                            <button type="button" onClick={fetchFidePlayer} disabled={isFetchingFide} className="btn-ghost">
-                                {isFetchingFide ? 'Fetching...' : '🔍 Fetch FIDE Info'}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '12px' }}>
+                            <input type="number" placeholder="Optional: Fetch by FIDE ID" value={fideId} onChange={e => setFideId(e.target.value)} style={{ marginBottom: 0, flex: 1, border: 'none', background: 'transparent' }} />
+                            <button type="button" onClick={fetchFidePlayer} disabled={isFetchingFide || !fideId} className="btn-ghost" style={{ padding: '0.5rem 1rem' }}>
+                                {isFetchingFide ? 'Loading...' : '🔍 Fetch'}
                             </button>
                         </div>
 
@@ -727,21 +727,17 @@ const DashboardView = ({
                         </button>
                     </div>
                 ) : (
-                    <div className="glass-card">
-                        <div className="flex-between">
-                            <h3 className="neon-text">Tournament Controls</h3>
-                            <div className="badge badge-win">Active</div>
+                    <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>
+                                Tournament Active
+                            </h3>
+                            <p style={{ opacity: 0.5, fontSize: '0.8rem', margin: '0.5rem 0 0' }}>Manage pairings or export standings from the top menu.</p>
                         </div>
-                        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem' }}>
-                            <button onClick={() => setCurrentView('pairing')} style={{ gridColumn: 'span 2' }}>
-                                📊 Go to Pairing View
-                            </button>
-                            <button onClick={printReport} className="btn-ghost">Print Standings</button>
-                            <button onClick={exportToExcel} className="btn-ghost">Excel Standings</button>
-                            <button onClick={resetTournament} className="btn-ghost" style={{ gridColumn: 'span 2', color: '#ef4444', marginTop: '1rem' }}>
-                                Reset App
-                            </button>
-                        </div>
+                        <button onClick={() => setCurrentView('pairing')}>
+                            📊 View Pairings
+                        </button>
                     </div>
                 )}
 
