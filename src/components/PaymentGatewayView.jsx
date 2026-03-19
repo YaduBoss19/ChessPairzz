@@ -11,7 +11,7 @@ const PaymentGatewayView = ({ plan, onPaymentSuccess, onCancel }) => {
         const options = {
             // ⚠️ IMPORTANT: Replace this with your actual Razorpay Key ID
             // You can get this from your Razorpay Dashboard -> Account & Settings -> API Keys
-            key: "YOUR_RAZORPAY_KEY_ID", 
+            key: "rzp_test_ST2PK9P2kI0LLH",
             amount: amountInPaise,
             currency: "INR",
             name: "ChessPairzzz Pro Software",
@@ -38,7 +38,7 @@ const PaymentGatewayView = ({ plan, onPaymentSuccess, onCancel }) => {
         // Open Razorpay Checkout standard popup
         if (window.Razorpay) {
             const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', function (response){
+            rzp.on('payment.failed', function (response) {
                 console.error("Payment Failed:", response.error.description);
                 alert("Payment failed! " + response.error.description);
             });
@@ -79,8 +79,8 @@ const PaymentGatewayView = ({ plan, onPaymentSuccess, onCancel }) => {
 
                 {step === 'pending' && (
                     <>
-                        <button 
-                            onClick={handleRazorpayPayment} 
+                        <button
+                            onClick={handleRazorpayPayment}
                             style={{ width: '100%', padding: '1rem', fontSize: '1.2rem', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                             Pay Securely with Razorpay
                         </button>
