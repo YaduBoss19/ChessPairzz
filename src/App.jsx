@@ -363,31 +363,6 @@ const App = () => {
         setCurrentView('dashboard');
     };
 
-    const forceCloudSync = async () => {
-        const btn = document.getElementById('sync-btn');
-        if (btn) btn.innerText = '☁️ Syncing...';
-        
-        try {
-            await saveToDB('players', players);
-            await saveToDB('rounds', rounds);
-            await saveToDB('tournamentStarted', tournamentStarted);
-            await saveToDB('tournamentMeta', tournamentMeta);
-            
-            if (btn) {
-                btn.innerText = '✅ Synced!';
-                setTimeout(() => {
-                     if (document.getElementById('sync-btn')) document.getElementById('sync-btn').innerText = '☁️ Cloud Sync';
-                }, 2000);
-            }
-        } catch(e) {
-            if (btn) btn.innerText = '❌ Failed';
-            setTimeout(() => {
-                 if (document.getElementById('sync-btn')) document.getElementById('sync-btn').innerText = '☁️ Cloud Sync';
-            }, 2000);
-            alert("Cloud database sync failed. Check your internet connection.");
-        }
-    };
-
     const fetchFidePlayer = async () => {
         if (!fideId) return;
         setIsFetchingFide(true);
@@ -462,15 +437,6 @@ const App = () => {
                         accept=".json"
                         onChange={importData}
                     />
-                </div>
-
-                <div 
-                    id="sync-btn"
-                    className="ribbon-item" 
-                    onClick={forceCloudSync}
-                    style={{ background: 'var(--primary)', color: '#000', fontWeight: 'bold' }}
-                >
-                    ☁️ Cloud Sync
                 </div>
 
                 {navItems.map(item => (
@@ -621,7 +587,7 @@ const DashboardView = ({
 
                     <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', borderTop: '1px solid var(--glass-border)', paddingTop: '1.5rem' }}>
                         <div style={{ padding: '8px', background: '#fff', borderRadius: '8px', marginBottom: '10px' }}>
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(window.location.href)}`} alt="QR" style={{ display: 'block' }} />
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(window.location.origin + '?live=true')}`} alt="Live QR" style={{ display: 'block' }} />
                         </div>
                         <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>Scan for Live Results</span>
                     </div>
