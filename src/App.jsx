@@ -889,9 +889,10 @@ const PairingView = ({
     nextRound, completeRound, getStartingRank, updateResult, standings,
     exportPairingsToExcel, onGenerateCertificate, setPrintingSlipsRound, tournamentMeta, onBroadcastWhatsApp
 }) => {
-    if (!tournamentStarted) return null;
-    const currentRoundIndex = selectedRoundIndex !== null ? selectedRoundIndex : rounds.length - 1;
+    if (!tournamentStarted || !rounds || rounds.length === 0) return null;
+    const currentRoundIndex = (selectedRoundIndex !== null && selectedRoundIndex < rounds.length) ? selectedRoundIndex : rounds.length - 1;
     const activeRound = rounds[currentRoundIndex];
+    if (!activeRound) return null;
 
     return (
         <div className="fade-in">
