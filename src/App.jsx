@@ -310,9 +310,9 @@ const App = () => {
             Points: p.points,
             'BH-Cut1': p.buchholzCut1,
             'BH-Total': p.buchholz,
-            Wins: p.wins,
-            'SB': p.sonnebornBerger.toFixed(2),
-            BlackWins: p.blackWins
+            Wins: p.wins || 0,
+            'SB': Number(p.sonnebornBerger || 0).toFixed(2),
+            BlackWins: p.blackWins || 0
         }));
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
@@ -1030,13 +1030,13 @@ const StandingsView = ({ standings, exportToExcel, onGenerateCertificate }) => (
                         {standings.map((p, idx) => (
                             <tr key={p.id}>
                                 <td>{idx + 1}</td>
-                                <td>{p.name} <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({p.rating})</span></td>
-                                <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{p.points}</td>
-                                <td>{p.buchholzCut1}</td>
-                                <td>{p.buchholz}</td>
-                                <td>{p.wins}</td>
-                                <td>{p.sonnebornBerger.toFixed(1)}</td>
-                                <td>{p.blackWins}</td>
+                                <td>{p.name} <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({p.rating || 0})</span></td>
+                                <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{p.points || 0}</td>
+                                <td>{p.buchholzCut1 || 0}</td>
+                                <td>{p.buchholz || 0}</td>
+                                <td>{p.wins || 0}</td>
+                                <td>{Number(p.sonnebornBerger || 0).toFixed(1)}</td>
+                                <td>{p.blackWins || 0}</td>
                                 <td className="no-print">
                                     <button 
                                         className="btn-icon" 
