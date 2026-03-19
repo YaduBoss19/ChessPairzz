@@ -4,21 +4,21 @@ import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 // ⚠️ IMPORTANT: Replace these with your actual Firebase project credentials!
 // You can get this by going to Firebase Console -> Project Settings -> General -> Web Apps
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef"
+    apiKey: "AIzaSyBFf1FAg_0pRUaNyfz9OqaUtNG4Etf3W94",
+    authDomain: "chesspairzzz.firebaseapp.com",
+    projectId: "chesspairzzz",
+    storageBucket: "chesspairzzz.firebasestorage.app",
+    messagingSenderId: "637721308937",
+    appId: "1:637721308937:web:ec7c08e6c626144fe96dd8"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const db = getFirestore(app);
 
 // In a real product, 'tenantId' should be dynamically set to the currently logged in user's ID
 // so different customers don't overwrite each other's tournaments.
-const tenantId = 'global_dev_instance';
+export const tenantId = 'global_dev_instance';
 
 /**
  * Saves arbitrary data to the Firebase Firestore database under a specific key.
@@ -43,7 +43,7 @@ export const loadFromDB = async (key, defaultValue = null) => {
     try {
         const docRef = doc(db, 'chess_tournaments', tenantId);
         const snapshot = await getDoc(docRef);
-        
+
         if (snapshot.exists()) {
             const documentData = snapshot.data();
             // If the key exists in our Firestore document, return it, otherwise fallback.
