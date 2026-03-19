@@ -7,7 +7,9 @@ export const RESULTS = {
     WHITE_WIN: '1-0',
     BLACK_WIN: '0-1',
     DRAW: '1/2-1/2',
-    BYE: '1-0 (Bye)'
+    BYE: '1-0 (Bye)',
+    WHITE_WALKOVER: '+ -',
+    BLACK_WALKOVER: '- +'
 };
 
 /**
@@ -46,7 +48,7 @@ export const generateRound1 = (players) => {
 /**
  * Calculates current standings based on tournament history with FIDE tie-breaks
  */
-export const calculateStandings = (players, rounds) => {
+export const calculateStandings = (players, rounds, tieBreaks = ['Points', 'BH-C1', 'BH', 'Wins', 'Direct', 'SB', 'BW']) => {
     const standings = players.map(p => ({
         ...p,
         points: 0,
@@ -82,12 +84,12 @@ export const calculateStandings = (players, rounds) => {
             blackPlayer.lastColor = 'B';
 
             // Store results for Direct Encounter
-            if (game.result === RESULTS.WHITE_WIN) {
+            if (game.result === RESULTS.WHITE_WIN || game.result === RESULTS.WHITE_WALKOVER) {
                 whitePlayer.points += 1;
                 whitePlayer.wins += 1;
                 whitePlayer.gameResults[blackPlayer.id] = 1;
                 blackPlayer.gameResults[whitePlayer.id] = 0;
-            } else if (game.result === RESULTS.BLACK_WIN) {
+            } else if (game.result === RESULTS.BLACK_WIN || game.result === RESULTS.BLACK_WALKOVER) {
                 blackPlayer.points += 1;
                 blackPlayer.wins += 1;
                 blackPlayer.blackWins += 1;
@@ -136,37 +138,27 @@ export const calculateStandings = (players, rounds) => {
         }
     });
 
-    // Sorting based on FIDE recommendation order
+    // Sorting based on provided tie-breaks list
     return standings.sort((a, b) => {
-        // 1. Points
-        if (b.points !== a.points) return b.points - a.points;
-
-        // 2. Buchholz Cut 1
-        if (b.buchholzCut1 !== a.buchholzCut1) return b.buchholzCut1 - a.buchholzCut1;
-
-        // 3. Buchholz Total
-        if (b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
-
-        // 4. Greater Number of Wins
-        if (b.wins !== a.wins) return b.wins - a.wins;
-
-        // 5. Direct Encounter
-        const directResult = a.gameResults[b.id];
-        if (directResult !== undefined) {
-            // Comparison: did a beat b?
-            const bDirectResult = b.gameResults[a.id];
-            if (directResult > bDirectResult) return -1;
-            if (directResult < bDirectResult) return 1;
+        for (const tb of tieBreaks) {
+            if (tb === 'Points' && b.points !== a.points) return b.points - a.points;
+            if (tb === 'BH-C1' && b.buchholzCut1 !== a.buchholzCut1) return b.buchholzCut1 - a.buchholzCut1;
+            if (tb === 'BH' && b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
+            if (tb === 'Wins' && b.wins !== a.wins) return b.wins - a.wins;
+            if (tb === 'Direct') {
+                const directResult = a.gameResults[b.id];
+                if (directResult !== undefined) {
+                    const bDirectResult = b.gameResults[a.id];
+                    if (directResult > bDirectResult) return -1;
+                    if (directResult < bDirectResult) return 1;
+                }
+            }
+            if (tb === 'SB' && b.sonnebornBerger !== a.sonnebornBerger) return b.sonnebornBerger - a.sonnebornBerger;
+            if (tb === 'BW' && b.blackWins !== a.blackWins) return b.blackWins - a.blackWins;
         }
-
-        // 6. Sonneborn-Berger
-        if (b.sonnebornBerger !== a.sonnebornBerger) return b.sonnebornBerger - a.sonnebornBerger;
-
-        // 7. Number of Wins with Black
-        if (b.blackWins !== a.blackWins) return b.blackWins - a.blackWins;
-
-        // 8. Rating (as fallback)
-        return b.rating - a.rating;
+        
+        // Rating (as fallback)
+        return (b.rating || 0) - (a.rating || 0);
     });
 };
 
@@ -235,5 +227,54 @@ export const generateSubsequentRound = (players, rounds) => {
         }
     }
 
+    return { pairings, bye };
+};
+
+/**
+ * Generates Round Robin pairings for a specific round
+ */
+export const generateRoundRobinPairings = (players, roundNumber) => {
+    let participants = [...players].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    const n = participants.length;
+    
+    if (n % 2 !== 0) {
+        participants.push({ id: 'dummy-bye', name: 'Bye', rating: 0 });
+    }
+    
+    const numPlayers = participants.length;
+    const fixed = participants[0];
+    const rotating = participants.slice(1);
+    
+    const rotation = (roundNumber - 1) % rotating.length;
+    const rotated = [
+        ...rotating.slice(rotating.length - rotation),
+        ...rotating.slice(0, rotating.length - rotation)
+    ];
+    
+    const currentOrder = [fixed, ...rotated];
+    const half = numPlayers / 2;
+    
+    const pairings = [];
+    let bye = null;
+    
+    for (let i = 0; i < half; i++) {
+        let p1 = currentOrder[i];
+        let p2 = currentOrder[numPlayers - 1 - i];
+        
+        if (i === 0 && roundNumber % 2 === 0) {
+            let temp = p1; p1 = p2; p2 = temp;
+        } else if (i !== 0 && i % 2 === 1) {
+            let temp = p1; p1 = p2; p2 = temp;
+        }
+
+        if (p1.id === 'dummy-bye') {
+            bye = p2;
+        } else if (p2.id === 'dummy-bye') {
+            bye = p1;
+        } else {
+            pairings.push({ white: p1, black: p2 });
+        }
+    }
+    
     return { pairings, bye };
 };

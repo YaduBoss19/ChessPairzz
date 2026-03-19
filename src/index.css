@@ -25,6 +25,58 @@ body {
     background: radial-gradient(circle at top right, #1e293b, #0f172a);
     color: var(--text);
     min-height: 100vh;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+body.light {
+    --bg-dark: #f8fafc;
+    --glass: rgba(0, 0, 0, 0.03);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --text: #0f172a;
+    --text-dim: rgba(15, 23, 42, 0.6);
+    background: radial-gradient(circle at top right, #e2e8f0, #f8fafc);
+}
+
+body.light .neon-text {
+    filter: none;
+    background: linear-gradient(90deg, #0284c7, #0369a1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.light button:not(.btn-ghost):not(.tab-link):not(.btn-round-select):not(.active) {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+body.light input, body.light textarea {
+    background: rgba(255, 255, 255, 0.5);
+    color: #000;
+}
+
+body.light .ribbon {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+body.light .ribbon-item:hover .ribbon-dropdown {
+    background: #fff;
+    border-color: #e2e8f0;
+}
+
+body.light .dropdown-item:hover {
+    background: #f1f5f9;
+}
+
+body.light .app-container td, body.light .app-container th {
+    border-color: rgba(0,0,0,0.05);
+}
+
+body.light .badge {
+    border-color: rgba(0,0,0,0.1);
+}
+
+body.light .btn-icon {
+    color: var(--text);
 }
 
 .app-container {
@@ -47,6 +99,7 @@ body {
 .neon-text {
     background: linear-gradient(90deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.3));
 }
@@ -1170,5 +1223,284 @@ textarea {
     .rating-dim {
         color: #000 !important;
         opacity: 1 !important;
+    }
+}
+
+/* Walkover Button Styles */
+.result-selector button[title="White Walkover"] {
+    background: rgba(34, 197, 94, 0.1) !important;
+    color: #22c55e !important;
+    border-color: rgba(34, 197, 94, 0.2) !important;
+    box-shadow: none !important;
+}
+
+.result-selector button[title="Black Walkover"] {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+    box-shadow: none !important;
+}
+
+.result-selector button.active[title="White Walkover"] {
+    background: #22c55e !important;
+    color: #000 !important;
+}
+
+.result-selector button.active[title="Black Walkover"] {
+    background: #ef4444 !important;
+    color: #fff !important;
+}
+
+/* Certificate Styles */
+.certificate-modal, .match-slips-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* flex-start prevents top-cutoff on massive lists */
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.certificate-container {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.certificate-border {
+    background: #fdfbf7;
+    padding: 2.5rem;
+    border: 20px solid #e2e8f0;
+    position: relative;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+}
+
+.certificate-inner-border {
+    border: 2px solid #cbd5e1;
+    padding: 3rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: #1e293b;
+}
+
+.certificate-title {
+    font-family: 'Syncopate', sans-serif;
+    font-size: 2.5rem;
+    text-transform: uppercase;
+    color: #0c4a6e;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.certificate-subtitle {
+    font-size: 1.2rem;
+    font-style: italic;
+    color: #64748b;
+    margin-bottom: 2rem;
+}
+
+.recipient-name {
+    font-size: 4rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 1rem 0;
+}
+
+.recipient-underline {
+    width: 300px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #0c4a6e, transparent);
+    margin-bottom: 2rem;
+}
+
+.certificate-body {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 600px;
+}
+
+.tournament-name {
+    font-size: 1.5rem;
+    color: #0c4a6e;
+    text-decoration: underline;
+    text-decoration-color: #cbd5e1;
+    text-underline-offset: 8px;
+    margin: 1rem 0;
+}
+
+.certificate-details {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-top: 2rem;
+    background: rgba(226, 232, 240, 0.4);
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.detail-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 1px;
+}
+
+.detail-value {
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.certificate-footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 4rem;
+}
+
+.signature-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 200px;
+}
+
+.signature-line {
+    width: 100%;
+    height: 1px;
+    background: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.seal {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 4px double #0c4a6e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 800;
+    color: #0c4a6e;
+    font-size: 1.5rem;
+    opacity: 0.6;
+}
+
+.btn-certificate-print {
+    background: #0ea5e9;
+    color: white;
+    padding: 0.7rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    font-weight: bold;
+}
+
+.btn-certificate-print:hover {
+    background: #0284c7;
+}
+
+@media print {
+    body > div > nav,
+    body > div > .app-container {
+        display: none !important;
+    }
+
+    .certificate-modal, .match-slips-modal {
+        position: static !important;
+        padding: 0 !important;
+        background: white !important;
+        display: block !important;
+        height: auto !important;
+        width: auto !important;
+        overflow: visible !important;
+    }
+
+    .certificate-container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .certificate-border {
+        box-shadow: none !important;
+        border: 10px solid #000 !important;
+        background: white !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+}
+
+
+/* Match Slips */
+.match-slips-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.match-slip-card {
+    border: 1px dashed #000;
+    padding: 1rem;
+    background: #fff;
+    color: #000;
+    page-break-inside: avoid;
+}
+
+.slip-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #000;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.slip-table {
+    width: 100%;
+    border: none;
+}
+
+.slip-table td {
+    border: none;
+    padding: 0.5rem 0;
+}
+
+.slip-box {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #000;
+    vertical-align: middle;
+}
+
+@media print {
+    .match-slips-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .match-slip-card {
+        border: 1px dashed #ccc !important;
     }
 }

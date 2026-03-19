@@ -1,60 +1,54 @@
-
 import React, { useState, useEffect } from 'react';
 
 const PaymentGatewayView = ({ plan, onPaymentSuccess, onCancel }) => {
-    const [step, setStep] = useState('selection'); // selection, initiation, processing, verifying, success
-    const [selectedMethod, setSelectedMethod] = useState(null);
-    const [mockDetail, setMockDetail] = useState('');
-    const [progress, setProgress] = useState(0);
-
-    const paymentMethods = [
-        { id: 'gpay', name: 'Google Pay', icon: '📱', placeholder: 'Enter GPay ID (e.g. user@okaxis)' },
-        { id: 'bank', name: 'Bank Transfer', icon: '🏦', placeholder: 'Enter Account Number' },
-        { id: 'card', name: 'Credit/Debit Card', icon: '💳', placeholder: 'Enter Card Number (XXXX XXXX XXXX XXXX)' }
-    ];
-
-    const handleMethodSelect = (method) => {
-        setSelectedMethod(method);
-        setStep('initiation');
-    };
-
-    const handlePayNow = (e) => {
-        e.preventDefault();
-        handleRazorpayPayment();
-    };
+    const [step, setStep] = useState('pending'); // pending, success, failed
 
     const handleRazorpayPayment = () => {
-        const amountInPaise = Math.round(parseFloat(plan.inrPrice.replace(/[^0-9.]/g, '')) * 100);
+        // Convert the string price (e.g. ₹4,999) to an integer paise (cents) value
+        const numericPrice = parseFloat(plan.inrPrice.replace(/[^0-9.]/g, ''));
+        const amountInPaise = Math.round(numericPrice * 100);
 
         const options = {
-            key: "YOUR_RAZORPAY_KEY_ID", // Enter your Key ID here
+            // ⚠️ IMPORTANT: Replace this with your actual Razorpay Key ID
+            // You can get this from your Razorpay Dashboard -> Account & Settings -> API Keys
+            key: "YOUR_RAZORPAY_KEY_ID", 
             amount: amountInPaise,
             currency: "INR",
-            name: "chesspairzzz",
-            description: `${plan.name} Subscription`,
+            name: "ChessPairzzz Pro Software",
+            description: `Upgrading to ${plan.name} Subscription`,
             image: "https://your-logo-url.com/logo.png",
             handler: function (response) {
-                console.log("Payment Successful:", response);
+                console.log("Payment Successful. ID:", response.razorpay_payment_id);
                 setStep('success');
             },
             prefill: {
-                name: "User Name",
-                email: "user@example.com",
+                name: "Customer Name",
+                email: "customer@chessclub.com",
             },
             theme: {
                 color: "#14b8a6"
             },
             modal: {
                 ondismiss: function () {
-                    setStep('selection');
+                    console.log("Payment popup closed by user");
                 }
             }
         };
 
-        const rzp = new window.Razorpay(options);
-        rzp.open();
+        // Open Razorpay Checkout standard popup
+        if (window.Razorpay) {
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response){
+                console.error("Payment Failed:", response.error.description);
+                alert("Payment failed! " + response.error.description);
+            });
+            rzp.open();
+        } else {
+            alert("Razorpay SDK not loaded. Please ensure you are connected to the internet.");
+        }
     };
 
+    // Auto-progress to dashboard success after showing the checkmark for 3 seconds
     useEffect(() => {
         if (step === 'success') {
             const timer = setTimeout(() => {
@@ -65,118 +59,48 @@ const PaymentGatewayView = ({ plan, onPaymentSuccess, onCancel }) => {
     }, [step, plan, onPaymentSuccess]);
 
     return (
-        <div className="payment-gateway-container fade-in">
-            <div className="glass-card payment-card">
+        <div className="payment-gateway-container fade-in" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: '2rem' }}>
+            <div className="glass-card payment-card" style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
                 <div className="payment-header">
                     <h2 className="neon-text">Secure Checkout</h2>
-                    <p style={{ opacity: 0.6 }}>
-                        {step === 'selection' && 'Select Payment Method'}
-                        {step === 'initiation' && 'Enter Payment Details'}
-                        {['processing', 'verifying'].includes(step) && 'Simulated Payment Processor'}
-                        {step === 'success' && 'Transaction Complete'}
-                    </p>
+                    <p style={{ opacity: 0.6 }}>Review your subscription</p>
                 </div>
 
-                <div className="plan-summary">
-                    <div className="plan-line">
-                        <span>Plan:</span>
+                <div className="plan-summary" style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', margin: '2rem 0', textAlign: 'left' }}>
+                    <div className="plan-line" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '1.2rem' }}>
+                        <span>Plan Selected:</span>
                         <strong className="neon-text">{plan.name}</strong>
                     </div>
-                    <div className="plan-line">
-                        <span>Amount:</span>
-                        <strong>{plan.price} / {plan.inrPrice}</strong>
+                    <div className="plan-line" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem' }}>
+                        <span>Total Payable:</span>
+                        <strong>{plan.inrPrice}</strong>
                     </div>
-                    {selectedMethod && (
-                        <div className="plan-line" style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--glass-border)' }}>
-                            <span>Method:</span>
-                            <strong style={{ color: 'var(--primary)' }}>{selectedMethod.name}</strong>
-                        </div>
-                    )}
                 </div>
 
-                <div className="processing-visual">
-                    {step === 'selection' && (
-                        <div className="method-selection-grid">
-                            {paymentMethods.map(method => (
-                                <div
-                                    key={method.id}
-                                    className="method-option-card"
-                                    onClick={() => handleMethodSelect(method)}
-                                >
-                                    <div className="method-icon">{method.icon}</div>
-                                    <div className="method-name">{method.name}</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                {step === 'pending' && (
+                    <>
+                        <button 
+                            onClick={handleRazorpayPayment} 
+                            style={{ width: '100%', padding: '1rem', fontSize: '1.2rem', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                            Pay Securely with Razorpay
+                        </button>
+                        <button className="btn-ghost" onClick={onCancel} style={{ marginTop: '1rem', width: '100%' }}>
+                            Cancel
+                        </button>
+                    </>
+                )}
 
-                    {step === 'initiation' && (
-                        <div className="initiation-form fade-in">
-                            <form onSubmit={handlePayNow}>
-                                <div className="form-group" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.8rem', opacity: 0.6 }}>
-                                        {selectedMethod?.name} Details
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={mockDetail}
-                                        onChange={(e) => setMockDetail(e.target.value)}
-                                        placeholder={selectedMethod?.placeholder}
-                                        autoFocus
-                                    />
-                                </div>
-                                <button type="submit" className="pricing-btn" style={{ width: '100%' }}>
-                                    Pay Now
-                                </button>
-                                <button type="button" className="btn-ghost" onClick={() => setStep('selection')} style={{ width: '100%', marginTop: '1rem' }}>
-                                    Back to Selection
-                                </button>
-                            </form>
-                        </div>
-                    )}
-
-                    {step === 'processing' && (
-                        <div className="loader-container">
-                            <div className="spinner"></div>
-                            <p>Authorizing through {selectedMethod?.name}...</p>
-                        </div>
-                    )}
-
-                    {step === 'verifying' && (
-                        <div className="loader-container">
-                            <div className="spinner dual"></div>
-                            <p>Verifying secure transaction...</p>
-                        </div>
-                    )}
-
-                    {step === 'success' && (
-                        <div className="success-visual zoom-in">
-                            <div className="checkmark-circle">
-                                <div className="checkmark"></div>
-                            </div>
-                            <h3 className="neon-text">Payment Successful!</h3>
-                            <p>Upgrading your account now...</p>
-                        </div>
-                    )}
-                </div>
-
-                {(step === 'processing' || step === 'verifying') && (
-                    <div className="progress-bar-container">
-                        <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+                {step === 'success' && (
+                    <div className="success-visual zoom-in" style={{ padding: '2rem 0' }}>
+                        <div style={{ fontSize: '4rem', marginBottom: '1rem', color: '#10b981' }}>✅</div>
+                        <h3 className="neon-text" style={{ fontSize: '1.8rem' }}>Payment Successful!</h3>
+                        <p style={{ marginTop: '1rem', opacity: 0.8 }}>Upgrading your software license now... Please wait.</p>
                     </div>
                 )}
 
-                {!['processing', 'verifying', 'success'].includes(step) && (
-                    <button className="btn-ghost" onClick={onCancel} style={{ marginTop: '2rem', width: '100%' }}>
-                        Cancel Order
-                    </button>
-                )}
-
-                <div className="security-badges" style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center', opacity: 0.4, fontSize: '0.7rem' }}>
-                    <span>🔒 SSL Encryption</span>
-                    <span>✅ PCI Compliant</span>
-                    <span>💳 Secure Gateway</span>
+                <div className="security-badges" style={{ marginTop: '2rem', display: 'flex', gap: '1.5rem', justifyContent: 'center', opacity: 0.4, fontSize: '0.8rem' }}>
+                    <span>🔒 256-bit SSL</span>
+                    <span>✅ PCI-DSS Compliant</span>
                 </div>
             </div>
         </div>

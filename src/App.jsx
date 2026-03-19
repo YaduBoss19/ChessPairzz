@@ -1,51 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { generateRound1, generateSubsequentRound, calculateStandings, RESULTS } from './utils/pairing';
+import { generateRound1, generateSubsequentRound, generateRoundRobinPairings, calculateStandings, RESULTS } from './utils/pairing';
+import * as XLSX from 'xlsx';
+import { saveToDB, loadFromDB, clearDB } from './utils/firebase';
 import AuthView from './components/AuthView';
 import PaymentGatewayView from './components/PaymentGatewayView';
+import CertificateView from './components/CertificateView';
+import MatchSlipsView from './components/MatchSlipsView';
 
 const App = () => {
-    // --- Persistence ---
-    const [players, setPlayers] = useState(() => {
-        const saved = localStorage.getItem('players');
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [rounds, setRounds] = useState(() => {
-        const saved = localStorage.getItem('rounds');
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [tournamentStarted, setTournamentStarted] = useState(() => {
-        const saved = localStorage.getItem('tournamentStarted');
-        return saved ? JSON.parse(saved) : false;
-    });
-    const [tournamentMeta, setTournamentMeta] = useState(() => {
-        const saved = localStorage.getItem('tournamentMeta');
-        return saved ? JSON.parse(saved) : {
-            organizer: '',
-            federation: '',
-            director: '',
-            arbiter: '',
-            timeControl: '',
-            location: '',
-            rounds: 5,
-            type: 'Swiss',
-            calculation: 'FIDE',
-            date: new Date().toISOString().split('T')[0],
-        };
+    // --- Persistence (IndexedDB) ---
+    const [dbInitialized, setDbInitialized] = useState(false);
+
+    const [players, setPlayers] = useState([]);
+    const [rounds, setRounds] = useState([]);
+    const [tournamentStarted, setTournamentStarted] = useState(false);
+    const [tournamentMeta, setTournamentMeta] = useState({
+        organizer: '', federation: '', director: '', arbiter: '', timeControl: '', location: '',
+        rounds: 5, type: 'Swiss', calculation: 'FIDE', date: new Date().toISOString().split('T')[0],
+        tieBreaks: ['Points', 'BH-C1', 'BH', 'Wins', 'Direct', 'SB', 'BW']
     });
 
-    const [users, setUsers] = useState(() => {
-        const saved = localStorage.getItem('users');
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [currentUser, setCurrentUser] = useState(() => {
-        const saved = localStorage.getItem('currentUser');
-        return saved ? JSON.parse(saved) : null;
-    });
+    const [users, setUsers] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    const [selectedCertificatePlayer, setSelectedCertificatePlayer] = useState(null);
+    const [printingSlipsRound, setPrintingSlipsRound] = useState(null);
+    
+    // Feature States
+    const [fideId, setFideId] = useState('');
+    const [isFetchingFide, setIsFetchingFide] = useState(false);
+    const [theme, setTheme] = useState('dark');
 
     const [currentView, setCurrentView] = useState('dashboard');
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [playerName, setPlayerName] = useState('');
     const [playerRating, setPlayerRating] = useState('');
+    const [playerAge, setPlayerAge] = useState('');
     const [bulkText, setBulkText] = useState('');
     const [editingPlayerId, setEditingPlayerId] = useState(null);
     const [showBulkEntry, setShowBulkEntry] = useState(false);
@@ -55,17 +45,48 @@ const App = () => {
     const [dashboardTab, setDashboardTab] = useState('ranking'); // ranking, alpha, stats, schedule
 
     useEffect(() => {
-        localStorage.setItem('players', JSON.stringify(players));
-        localStorage.setItem('rounds', JSON.stringify(rounds));
-        localStorage.setItem('tournamentStarted', JSON.stringify(tournamentStarted));
-        localStorage.setItem('tournamentMeta', JSON.stringify(tournamentMeta));
-        localStorage.setItem('users', JSON.stringify(users));
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        const loadInitialData = async () => {
+            const dbPlayers = await loadFromDB('players', []);
+            const dbRounds = await loadFromDB('rounds', []);
+            const dbStarted = await loadFromDB('tournamentStarted', false);
+            const dbMeta = await loadFromDB('tournamentMeta', {
+                organizer: '', federation: '', director: '', arbiter: '', timeControl: '', location: '',
+                rounds: 5, type: 'Swiss', calculation: 'FIDE', date: new Date().toISOString().split('T')[0],
+                tieBreaks: ['Points', 'BH-C1', 'BH', 'Wins', 'Direct', 'SB', 'BW']
+            });
+            const dbUsers = await loadFromDB('users', []);
+            const dbCurrentUser = await loadFromDB('currentUser', null);
+            const dbTheme = await loadFromDB('theme', 'dark');
+
+            setPlayers(dbPlayers);
+            setRounds(dbRounds);
+            setTournamentStarted(dbStarted);
+            setTournamentMeta(dbMeta);
+            setUsers(dbUsers);
+            setCurrentUser(dbCurrentUser);
+            setTheme(dbTheme);
+            setDbInitialized(true);
+        };
+        loadInitialData();
+    }, []);
+
+    useEffect(() => {
+        if (!dbInitialized) return;
+
+        saveToDB('players', players);
+        saveToDB('rounds', rounds);
+        saveToDB('tournamentStarted', tournamentStarted);
+        saveToDB('tournamentMeta', tournamentMeta);
+        saveToDB('users', users);
+        saveToDB('currentUser', currentUser);
+        saveToDB('theme', theme);
+
+        document.body.className = theme === 'light' ? 'light' : '';
 
         if (tournamentStarted || rounds.length > 0) {
-            setStandings(calculateStandings(players, rounds));
+            setStandings(calculateStandings(players, rounds, tournamentMeta.tieBreaks || []));
         }
-    }, [players, rounds, tournamentStarted, tournamentMeta, users, currentUser]);
+    }, [players, rounds, tournamentStarted, tournamentMeta, users, currentUser, theme, dbInitialized]);
 
     // --- Actions ---
     const addPlayer = (e) => {
@@ -74,11 +95,13 @@ const App = () => {
         const newPlayer = {
             id: Date.now().toString(),
             name: playerName,
-            rating: parseInt(playerRating) || 0
+            rating: parseInt(playerRating) || 0,
+            age: parseInt(playerAge) || 0
         };
         setPlayers([...players, newPlayer]);
         setPlayerName('');
         setPlayerRating('');
+        setPlayerAge('');
     };
 
     const bulkAddPlayers = () => {
@@ -92,12 +115,14 @@ const App = () => {
             const parts = line.split(/[,,|]/);
             const name = parts[0].trim();
             const rating = parseInt(parts[1]) || 0;
+            const age = parseInt(parts[2]) || 0;
 
             if (name) {
                 newPlayersList.push({
                     id: (Date.now() + Math.random()).toString(),
                     name,
-                    rating
+                    rating,
+                    age
                 });
             }
         });
@@ -124,7 +149,13 @@ const App = () => {
             alert("At least 2 players required");
             return;
         }
-        const round1 = generateRound1(players);
+        const isRR = tournamentMeta.type === 'Round Robin';
+        if (isRR) {
+            const expectedRounds = players.length % 2 === 0 ? players.length - 1 : players.length;
+            setTournamentMeta(prev => ({ ...prev, rounds: expectedRounds }));
+        }
+
+        const round1 = isRR ? generateRoundRobinPairings(players, 1) : generateRound1(players);
         setRounds([{ number: 1, pairings: round1.pairings, bye: round1.bye, completed: false }]);
         setTournamentStarted(true);
         setCurrentView('pairing');
@@ -161,8 +192,9 @@ const App = () => {
     };
 
     const nextRound = () => {
-        const nextRoundData = generateSubsequentRound(players, rounds);
         const nextNum = rounds.length + 1;
+        const isRR = tournamentMeta.type === 'Round Robin';
+        const nextRoundData = isRR ? generateRoundRobinPairings(players, nextNum) : generateSubsequentRound(players, rounds);
         setRounds([...rounds, {
             number: nextNum,
             pairings: nextRoundData.pairings,
@@ -173,12 +205,14 @@ const App = () => {
 
     const resetTournament = () => {
         if (window.confirm("Are you sure you want to reset the tournament? This will clear all rounds and players.")) {
-            setPlayers([]);
-            setRounds([]);
-            setTournamentStarted(false);
-            setCurrentView('dashboard');
-            localStorage.clear();
+            clearDB().then(() => {
+                setPlayers([]);
+                setRounds([]);
+                setTournamentStarted(false);
+                setCurrentView('dashboard');
+            });
         }
+
     };
 
     const exportData = () => {
@@ -222,20 +256,28 @@ const App = () => {
 
     const exportPairingsToExcel = (round) => {
         if (!round) return;
-        let csvContent = "Board,White,Rtg_W,Result,Rtg_B,Black\n";
-        round.pairings.forEach((pair, idx) => {
-            csvContent += `${idx + 1},"${pair.white.name}",${pair.white.rating},${pair.result || 'vs'},${pair.black.rating},"${pair.black.name}"\n`;
-        });
+        const data = round.pairings.map((pair, idx) => ({
+            Board: idx + 1,
+            'Name (White)': pair.white.name,
+            'Rating (White)': pair.white.rating,
+            Result: pair.result || 'vs',
+            'Rating (Black)': pair.black.rating,
+            'Name (Black)': pair.black.name
+        }));
         if (round.bye) {
-            csvContent += `${round.pairings.length + 1},"${round.bye.name}",${round.bye.rating},Bye,,---\n`;
+            data.push({
+                Board: round.pairings.length + 1,
+                'Name (White)': round.bye.name,
+                'Rating (White)': round.bye.rating,
+                Result: 'Bye',
+                'Rating (Black)': '',
+                'Name (Black)': '---'
+            });
         }
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `pairings_round_${round.number}.csv`);
-        link.click();
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `Round ${round.number}`);
+        XLSX.writeFile(wb, `pairings_round_${round.number}.xlsx`);
     };
 
     const exportToExcel = () => {
@@ -243,24 +285,22 @@ const App = () => {
             alert("No standings to export yet.");
             return;
         }
-
-        // CSV Header
-        let csvContent = "Rank,Name,Rating,Points,BH-Cut1,BH-Total,Wins,SB,BlackWins\n";
-
-        // CSV Rows
-        standings.forEach((p, idx) => {
-            csvContent += `${idx + 1},"${p.name}",${p.rating},${p.points},${p.buchholzCut1},${p.buchholz},${p.wins},${p.sonnebornBerger.toFixed(2)},${p.blackWins}\n`;
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `standings_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const data = standings.map((p, idx) => ({
+            Rank: idx + 1,
+            Name: p.name,
+            Rating: p.rating,
+            Age: p.age || '',
+            Points: p.points,
+            'BH-Cut1': p.buchholzCut1,
+            'BH-Total': p.buchholz,
+            Wins: p.wins,
+            'SB': p.sonnebornBerger.toFixed(2),
+            BlackWins: p.blackWins
+        }));
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Standings");
+        XLSX.writeFile(wb, `standings_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     const printReport = () => {
@@ -305,10 +345,32 @@ const App = () => {
         setCurrentView('dashboard');
     };
 
+    const fetchFidePlayer = async () => {
+        if (!fideId) return;
+        setIsFetchingFide(true);
+        try {
+            const res = await fetch(`https://fide-api.vercel.app/player_info/?fide_id=${fideId}`).catch(() => null);
+            if (res && res.ok) {
+                const data = await res.json();
+                setPlayerName(data.name || '');
+                setPlayerRating(data.classical_rating || data.rapid_rating || data.blitz_rating || 0);
+                setPlayerAge(data.birth_year ? (new Date().getFullYear() - parseInt(data.birth_year)) : 0);
+                setFideId('');
+            } else {
+                alert("Could not fetch FIDE data. Network error or invalid ID.");
+            }
+        } catch (e) {
+            alert("Error fetching FIDE data.");
+        }
+        setIsFetchingFide(false);
+    };
+
+
     // --- Views ---
     const navItems = [
         { id: 'dashboard', label: 'Home' },
         { id: 'pairing', label: 'Pairing' },
+        { id: 'standings', label: 'Standings' },
         { id: 'pricing', label: 'Pricing' },
         { id: 'details', label: 'Details' },
         { id: 'about', label: 'About' }
@@ -373,7 +435,10 @@ const App = () => {
                         <div className="user-avatar">{currentUser.name.charAt(0).toUpperCase()}</div>
                         <span>{currentUser.name}</span>
                     </div>
-                    <button className="btn-ghost" onClick={handleLogout} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>Logout</button>
+                    <button className="btn-icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} style={{ fontSize: '1.2rem', marginLeft: '0.5rem', border: 'none', background: 'transparent' }}>
+                        {theme === 'light' ? '🌙' : '☀️'}
+                    </button>
+                    <button className="btn-ghost" onClick={handleLogout} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginLeft: '0.5rem' }}>Logout</button>
                 </div>
             </nav>
 
@@ -401,11 +466,18 @@ const App = () => {
                         setPlayerName={setPlayerName}
                         playerRating={playerRating}
                         setPlayerRating={setPlayerRating}
+                        playerAge={playerAge}
+                        setPlayerAge={setPlayerAge}
                         showBulkEntry={showBulkEntry}
                         setShowBulkEntry={setShowBulkEntry}
                         bulkText={bulkText}
                         setBulkText={setBulkText}
                         bulkAddPlayers={bulkAddPlayers}
+                        onGenerateCertificate={(p, rank) => setSelectedCertificatePlayer({ ...p, rank })}
+                        fideId={fideId}
+                        setFideId={setFideId}
+                        isFetchingFide={isFetchingFide}
+                        fetchFidePlayer={fetchFidePlayer}
                     />
                 )}
                 {currentView === 'pairing' && (
@@ -420,6 +492,16 @@ const App = () => {
                         updateResult={updateResult}
                         standings={standings}
                         exportPairingsToExcel={exportPairingsToExcel}
+                        onGenerateCertificate={(p, rank) => setSelectedCertificatePlayer({ ...p, rank })}
+                        setPrintingSlipsRound={setPrintingSlipsRound}
+                        tournamentMeta={tournamentMeta}
+                    />
+                )}
+                {currentView === 'standings' && (
+                    <StandingsView
+                        standings={standings}
+                        exportToExcel={exportToExcel}
+                        onGenerateCertificate={(p, rank) => setSelectedCertificatePlayer({ ...p, rank })}
                     />
                 )}
                 {currentView === 'about' && <AboutView />}
@@ -432,6 +514,22 @@ const App = () => {
                     />
                 )}
             </div>
+
+            {selectedCertificatePlayer && (
+                <CertificateView
+                    player={selectedCertificatePlayer}
+                    tournamentMeta={tournamentMeta}
+                    onClose={() => setSelectedCertificatePlayer(null)}
+                />
+            )}
+            
+            {printingSlipsRound && (
+                <MatchSlipsView
+                    round={printingSlipsRound}
+                    tournamentMeta={tournamentMeta}
+                    onClose={() => setPrintingSlipsRound(null)}
+                />
+            )}
         </div>
     );
 };
@@ -444,7 +542,10 @@ const DashboardView = ({
     resetTournament, dashboardTab, setDashboardTab, standings,
     getStartingRank, setEditingPlayerId, removePlayer, addPlayer,
     playerName, setPlayerName, playerRating, setPlayerRating,
-    showBulkEntry, setShowBulkEntry, bulkText, setBulkText, bulkAddPlayers
+    playerAge, setPlayerAge,
+    showBulkEntry, setShowBulkEntry, bulkText, setBulkText, bulkAddPlayers,
+    onGenerateCertificate,
+    fideId, setFideId, isFetchingFide, fetchFidePlayer
 }) => (
     <div className="fade-in">
         <h1 className="hero-logo">chesspair<span>zzz</span></h1>
@@ -496,8 +597,16 @@ const DashboardView = ({
                 {!tournamentStarted ? (
                     <div className="glass-card">
                         <h3 className="neon-text">Player Setup</h3>
-                        <form onSubmit={addPlayer} style={{ marginTop: '1.5rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', marginBottom: '1rem' }}>
+                        
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
+                            <input type="number" placeholder="Enter FIDE ID (Optional for Quick Fetch)" value={fideId} onChange={e => setFideId(e.target.value)} style={{ marginBottom: 0, flex: 1 }} />
+                            <button type="button" onClick={fetchFidePlayer} disabled={isFetchingFide} className="btn-ghost">
+                                {isFetchingFide ? 'Fetching...' : '🔍 Fetch FIDE Info'}
+                            </button>
+                        </div>
+
+                        <form onSubmit={addPlayer}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0.5rem', marginBottom: '1rem' }}>
                                 <input
                                     type="text"
                                     placeholder="Player Name"
@@ -511,6 +620,13 @@ const DashboardView = ({
                                     value={playerRating}
                                     onChange={e => setPlayerRating(e.target.value)}
                                     style={{ marginBottom: 0, width: '100px' }}
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Age"
+                                    value={playerAge}
+                                    onChange={e => setPlayerAge(e.target.value)}
+                                    style={{ marginBottom: 0, width: '80px' }}
                                 />
                                 <button type="submit">Add</button>
                             </div>
@@ -567,6 +683,7 @@ const DashboardView = ({
                         <button className={`tab-link ${dashboardTab === 'ranking' ? 'active' : ''}`} onClick={() => setDashboardTab('ranking')}>Starting Rank</button>
                         <button className={`tab-link ${dashboardTab === 'alpha' ? 'active' : ''}`} onClick={() => setDashboardTab('alpha')}>Alphabetical</button>
                         <button className={`tab-link ${dashboardTab === 'stats' ? 'active' : ''}`} onClick={() => setDashboardTab('stats')}>Adv. Stats</button>
+                        <button className={`tab-link ${dashboardTab === 'categories' ? 'active' : ''}`} onClick={() => setDashboardTab('categories')}>Categories</button>
                         <button className={`tab-link ${dashboardTab === 'schedule' ? 'active' : ''}`} onClick={() => setDashboardTab('schedule')}>Schedule</button>
                     </div>
 
@@ -574,18 +691,27 @@ const DashboardView = ({
                         {dashboardTab === 'ranking' && (
                             <table className="compact-table">
                                 <thead>
-                                    <tr><th>Sl. No</th><th>Name</th><th>Rating</th><th>{tournamentStarted ? 'Pts' : ''}</th><th>Action</th></tr>
+                                    <tr><th>Sl. No</th><th>Name</th><th>Rating/Age</th><th>{tournamentStarted ? 'Pts' : ''}</th><th>Action</th></tr>
                                 </thead>
                                 <tbody>
                                     {[...players].sort((a, b) => b.rating - a.rating || a.name.localeCompare(b.name)).map((p, idx) => (
                                         <tr key={p.id}>
                                             <td>{idx + 1}</td>
                                             <td><strong>{p.name}</strong></td>
-                                            <td>{p.rating}</td>
+                                            <td>{p.rating} / {p.age || '-'}</td>
                                             <td>{tournamentStarted ? (standings.find(s => s.id === p.id)?.points || 0) : ''}</td>
                                             <td>
                                                 <button className="btn-icon" onClick={() => setEditingPlayerId(p.id)}>✎</button>
                                                 <button className="btn-icon delete" onClick={() => removePlayer(p.id)}>✕</button>
+                                                {tournamentStarted && (
+                                                    <button
+                                                        className="btn-icon"
+                                                        style={{ marginLeft: '4px' }}
+                                                        onClick={() => onGenerateCertificate(standings.find(s => s.id === p.id), getStartingRank(p.id))}
+                                                    >
+                                                        📜
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -645,6 +771,40 @@ const DashboardView = ({
                             </div>
                         )}
 
+                        {dashboardTab === 'categories' && (
+                            <div className="categories-pane">
+                                {['U-8', 'U-10', 'U-12', 'U-14', 'U-16', 'Open'].map(cat => {
+                                    const ageLimit = cat === 'Open' ? 999 : parseInt(cat.split('-')[1]);
+                                    const catPlayers = standings
+                                        .filter(p => p.age && p.age <= ageLimit)
+                                        .slice(0, 3);
+                                    
+                                    if (catPlayers.length === 0 && cat !== 'Open') return null;
+
+                                    return (
+                                        <div key={cat} className="category-group" style={{ marginBottom: '2rem' }}>
+                                            <h4 style={{ color: 'var(--primary)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
+                                                {cat} Category Winners
+                                            </h4>
+                                            <table className="compact-table">
+                                                <thead><tr><th>Rank</th><th>Name</th><th>Age</th><th>Pts</th></tr></thead>
+                                                <tbody>
+                                                    {catPlayers.map((p, i) => (
+                                                        <tr key={p.id}>
+                                                            <td>{i + 1}</td>
+                                                            <td><strong>{p.name}</strong></td>
+                                                            <td>{p.age}</td>
+                                                            <td style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{p.points}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         {players.length === 0 && (
                             <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.3 }}>
                                 No players found. Add them in the setup section above.
@@ -660,7 +820,7 @@ const DashboardView = ({
 const PairingView = ({
     tournamentStarted, selectedRoundIndex, rounds, setSelectedRoundIndex,
     nextRound, completeRound, getStartingRank, updateResult, standings,
-    exportPairingsToExcel
+    exportPairingsToExcel, onGenerateCertificate, setPrintingSlipsRound, tournamentMeta
 }) => {
     if (!tournamentStarted) return null;
     const currentRoundIndex = selectedRoundIndex !== null ? selectedRoundIndex : rounds.length - 1;
@@ -684,6 +844,7 @@ const PairingView = ({
                     </div>
                 </div>
                 <div>
+                    <button className="btn-ghost" style={{ marginRight: '0.5rem' }} onClick={() => setPrintingSlipsRound(activeRound)}>🖨 Slips</button>
                     <button className="btn-ghost" style={{ marginRight: '0.5rem' }} onClick={() => window.print()}>Print Pairings</button>
                     <button className="btn-ghost" style={{ marginRight: '1rem' }} onClick={() => exportPairingsToExcel(activeRound)}>Excel Pairings</button>
                     {activeRound.completed ? (
@@ -740,6 +901,20 @@ const PairingView = ({
                                             >
                                                 0 - 1
                                             </button>
+                                            <button
+                                                onClick={() => updateResult(activeRound.number, idx, RESULTS.WHITE_WALKOVER)}
+                                                className={pair.result === RESULTS.WHITE_WALKOVER ? 'active white-win' : ''}
+                                                title="White Walkover"
+                                            >
+                                                + -
+                                            </button>
+                                            <button
+                                                onClick={() => updateResult(activeRound.number, idx, RESULTS.BLACK_WALKOVER)}
+                                                className={pair.result === RESULTS.BLACK_WALKOVER ? 'active black-win' : ''}
+                                                title="Black Walkover"
+                                            >
+                                                - +
+                                            </button>
                                         </div>
                                     </td>
                                     <td><span className="rating-dim">{pair.black.rating}</span></td>
@@ -757,43 +932,66 @@ const PairingView = ({
                     </div>
                 )}
             </div>
-
-            <div className="glass-card" style={{ marginTop: '2rem' }}>
-                <h3 className="neon-text">Tournament Standings</h3>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ minWidth: '800px' }}>
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Player</th>
-                                <th>Pts</th>
-                                <th>BH-C1</th>
-                                <th>BH</th>
-                                <th>Wins</th>
-                                <th>SB</th>
-                                <th>BW</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {standings.map((p, idx) => (
-                                <tr key={p.id}>
-                                    <td>{idx + 1}</td>
-                                    <td>{p.name} <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({p.rating})</span></td>
-                                    <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{p.points}</td>
-                                    <td>{p.buchholzCut1}</td>
-                                    <td>{p.buchholz}</td>
-                                    <td>{p.wins}</td>
-                                    <td>{p.sonnebornBerger.toFixed(1)}</td>
-                                    <td>{p.blackWins}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     );
 };
+
+const StandingsView = ({ standings, exportToExcel, onGenerateCertificate }) => (
+    <div className="fade-in">
+        <div className="flex-between" style={{ marginBottom: '2rem' }}>
+            <h2 className="neon-text">Tournament Final Standings</h2>
+            <button className="btn-ghost" onClick={exportToExcel}>Export to Excel</button>
+        </div>
+        <div className="glass-card">
+            <div style={{ overflowX: 'auto' }}>
+                <table style={{ minWidth: '800px' }}>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Pts</th>
+                            <th>BH-C1</th>
+                            <th>BH</th>
+                            <th>Wins</th>
+                            <th>SB</th>
+                            <th>BW</th>
+                            <th className="no-print">Cert</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {standings.map((p, idx) => (
+                            <tr key={p.id}>
+                                <td>{idx + 1}</td>
+                                <td>{p.name} <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({p.rating})</span></td>
+                                <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{p.points}</td>
+                                <td>{p.buchholzCut1}</td>
+                                <td>{p.buchholz}</td>
+                                <td>{p.wins}</td>
+                                <td>{p.sonnebornBerger.toFixed(1)}</td>
+                                <td>{p.blackWins}</td>
+                                <td className="no-print">
+                                    <button 
+                                        className="btn-icon" 
+                                        style={{ padding: '0.2rem 0.5rem', fontSize: '1rem' }}
+                                        onClick={() => onGenerateCertificate(p, idx + 1)}
+                                        title="Generate Certificate"
+                                    >
+                                        📜
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            {standings.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.3 }}>
+                    No standings available yet. Start the tournament!
+                </div>
+            )}
+        </div>
+    </div>
+);
 
 const AboutView = () => (
     <div className="glass-card fade-in">
@@ -828,6 +1026,16 @@ const TournamentDetailsView = ({ tournamentMeta, setTournamentMeta, setCurrentVi
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+            <div className="form-group" style={{ gridColumn: '1 / -1', border: '1px solid var(--primary)', padding: '1rem', borderRadius: '8px', background: 'rgba(0,0,0,0.1)' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '1rem', color: 'var(--primary)', fontWeight: 'bold' }}>Tournament System</label>
+                <select value={tournamentMeta.type} onChange={e => setTournamentMeta({ ...tournamentMeta, type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'inherit' }}>
+                    <option style={{color:'#000'}} value="Swiss">Swiss System</option>
+                    <option style={{color:'#000'}} value="Round Robin">Round Robin</option>
+                </select>
+                <small style={{ display: 'block', marginTop: '0.5rem', opacity: 0.7 }}>
+                    Note: Changing this logic will apply to the next round generated.
+                </small>
+            </div>
             <div className="form-group">
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.8rem', opacity: 0.6 }}>Organizer(s)</label>
                 <input value={tournamentMeta.organizer} onChange={e => setTournamentMeta({ ...tournamentMeta, organizer: e.target.value })} placeholder="e.g. FIDE, Local Club" />
