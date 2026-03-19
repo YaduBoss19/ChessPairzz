@@ -320,6 +320,52 @@ const App = () => {
         XLSX.writeFile(wb, `standings_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    const handleProAction = (action) => {
+        if (!currentUser?.subscription || currentUser.subscription !== 'Pro License') {
+            alert("Upgrade to the Pro License to unlock this premium feature!");
+            setCurrentView('pricing');
+            return;
+        }
+        action();
+    };
+
+    const broadcastWhatsApp = (round) => {
+        if (!round || !round.pairings) return;
+        
+        let text = `🏆 *${tournamentMeta.name || 'Tournament'}* - Round ${round.number} Pairings:\n\n`;
+        round.pairings.forEach((p, idx) => {
+            text += `Board ${idx+1}: ${p.white.name} ⚔️ ${p.black.name}\n`;
+        });
+        text += `\n🔴 Live Board Search: ${window.location.origin}/?live=true`;
+
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const exportFideTRF = () => {
+        if (standings.length === 0) return alert("No standings to export.");
+
+        let trf = `012 ${tournamentMeta.name || 'Tournament'}\n`;
+        trf += `022 ${tournamentMeta.location || 'Unknown'}\n`;
+        trf += `042 ${tournamentMeta.date || ''}\n`;
+        trf += `052 ${tournamentMeta.date || ''}\n`;
+        trf += `062 ${players.length}\n`;
+        trf += `122 ${tournamentMeta.timeControl || ''}\n`;
+        
+        standings.forEach((p, idx) => {
+            const rank = (idx + 1).toString().padStart(4, ' ');
+            const name = p.name.padEnd(33, ' ');
+            const rtg = p.rating.toString().padStart(4, ' ');
+            const pts = p.points.toString().padStart(4, ' ');
+            trf += `001 ${rank}      NN ${name}${rtg} FIDE                 ${pts}\n`;
+        });
+
+        const blob = new Blob([trf], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${tournamentMeta.name || 'Tournament'}_FIDE.trf`;
+        a.click();
+    };
+
     const printReport = () => {
         window.print();
     };
@@ -426,6 +472,7 @@ const App = () => {
                         <div className="dropdown-item" onClick={() => document.getElementById('import-file').click()}>Open Project (JSON)</div>
                         <div className="dropdown-item" onClick={exportData}>Save Project (JSON)</div>
                         <div className="dropdown-item" onClick={exportToExcel}>Export Standings (CSV)</div>
+                        <div className="dropdown-item" onClick={() => handleProAction(exportFideTRF)} style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Export FIDE TRF 🏆</div>
                         <div className="dropdown-item" onClick={printReport}>Print / Save as PDF</div>
                         <hr style={{ opacity: 0.1, margin: '5px 0' }} />
                         <div className="dropdown-item" onClick={resetTournament} style={{ color: '#ef4444' }}>Reset App</div>
@@ -511,7 +558,8 @@ const App = () => {
                         updateResult={updateResult}
                         standings={standings}
                         exportPairingsToExcel={exportPairingsToExcel}
-                        onGenerateCertificate={(p, rank) => setSelectedCertificatePlayer({ ...p, rank })}
+                        onBroadcastWhatsApp={(round) => handleProAction(() => broadcastWhatsApp(round))}
+                        onGenerateCertificate={(p, rank) => handleProAction(() => setSelectedCertificatePlayer({ ...p, rank }))}
                         setPrintingSlipsRound={setPrintingSlipsRound}
                         tournamentMeta={tournamentMeta}
                     />
@@ -520,7 +568,7 @@ const App = () => {
                     <StandingsView
                         standings={standings}
                         exportToExcel={exportToExcel}
-                        onGenerateCertificate={(p, rank) => setSelectedCertificatePlayer({ ...p, rank })}
+                        onGenerateCertificate={(p, rank) => handleProAction(() => setSelectedCertificatePlayer({ ...p, rank }))}
                     />
                 )}
                 {currentView === 'about' && <AboutView />}
@@ -839,7 +887,7 @@ const DashboardView = ({
 const PairingView = ({
     tournamentStarted, selectedRoundIndex, rounds, setSelectedRoundIndex,
     nextRound, completeRound, getStartingRank, updateResult, standings,
-    exportPairingsToExcel, onGenerateCertificate, setPrintingSlipsRound, tournamentMeta
+    exportPairingsToExcel, onGenerateCertificate, setPrintingSlipsRound, tournamentMeta, onBroadcastWhatsApp
 }) => {
     if (!tournamentStarted) return null;
     const currentRoundIndex = selectedRoundIndex !== null ? selectedRoundIndex : rounds.length - 1;
@@ -863,6 +911,7 @@ const PairingView = ({
                     </div>
                 </div>
                 <div>
+                    <button className="btn-ghost" style={{ marginRight: '0.5rem', color: '#10b981', borderColor: '#10b981' }} onClick={() => onBroadcastWhatsApp(activeRound)}>💬 WhatsApp</button>
                     <button className="btn-ghost" style={{ marginRight: '0.5rem' }} onClick={() => setPrintingSlipsRound(activeRound)}>🖨 Slips</button>
                     <button className="btn-ghost" style={{ marginRight: '0.5rem' }} onClick={() => window.print()}>Print Pairings</button>
                     <button className="btn-ghost" style={{ marginRight: '1rem' }} onClick={() => exportPairingsToExcel(activeRound)}>Excel Pairings</button>
