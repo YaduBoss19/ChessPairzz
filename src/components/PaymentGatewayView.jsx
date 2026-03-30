@@ -7,7 +7,7 @@ const PaymentGatewayView = ({ plan, onPaymentSuccess, onCancel }) => {
 
     const numericPrice = parseFloat(plan.inrPrice.replace(/[^0-9.]/g, ''));
     // Generate a UPI payment link
-    const upiId = "ppyadukrishnan202@okicici"; // Replace with your actual UPI ID
+    const upiId = "ppyadukrishnan202@okhdfcbank"; // Replace with your actual UPI ID
     const upiName = "Yadu Krishnan";
     const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${numericPrice}&cu=INR`;
     
