@@ -68,10 +68,14 @@ const AuthView = ({ onLogin, onRegister }) => {
             setOtpSent(true);
             setSuccessMsg(`Real OTP sent to ${email}! Please check your inbox.`);
         }).catch((err) => {
-            console.warn("EmailJS not configured, falling back to simulated OTP.", err);
+            console.error("EmailJS Error:", err);
+            const errorMsg = err?.text || err?.message || 'Unknown network error';
+            setError(`EmailJS Error: ${errorMsg}`);
+            
+            // Still fallback to 1234 for testing purposes
             setExpectedOtp('1234');
             setOtpSent(true);
-            setSuccessMsg(`EmailJS not configured. Simulated OTP '1234' generated for ${mobile}.`);
+            setSuccessMsg(`Simulated OTP '1234' generated due to EmailJS failure.`);
         });
     };
 
