@@ -252,45 +252,6 @@ const App = () => {
         }
     };
 
-    const exportData = () => {
-        const data = { players, rounds, tournamentMeta };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `chesspairzzz_${tournamentMeta.name || 'tournament'}_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-    };
-
-    const importData = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                if (data.players && Array.isArray(data.players)) {
-                    setPlayers(data.players);
-                    setRounds(data.rounds || []);
-                    setTournamentMeta(data.tournamentMeta || {
-                        name: '', director: '', arbiter: '', timeControl: '', location: '', date: '', rounds: 5, organizer: '', type: 'Swiss', calculation: 'FIDE'
-                    });
-                    setTournamentStarted(data.rounds && data.rounds.length > 0);
-                    setCurrentView('dashboard');
-                    alert("Project loaded successfully!");
-                } else {
-                    alert("Invalid project file format.");
-                }
-            } catch (err) {
-                alert("Error parsing file: " + err.message);
-            }
-        };
-        reader.readAsText(file);
-        // Clear input
-        e.target.value = '';
-    };
-
     const exportPairingsToExcel = (round) => {
         if (!round) return;
         const data = round.pairings.map((pair, idx) => ({
@@ -390,8 +351,12 @@ const App = () => {
         window.print();
     };
 
-    const handleLogin = (email, password) => {
-        const user = users.find(u => u.email === email && u.password === password);
+    const handleLogin = (identifier, password) => {
+        // Can login via email OR name
+        const user = users.find(u => 
+            (u.email.toLowerCase() === identifier.toLowerCase() || u.name.toLowerCase() === identifier.toLowerCase()) 
+            && u.password === password
+        );
         if (user) {
             setCurrentUser(user);
             return true;
@@ -399,9 +364,9 @@ const App = () => {
         return false;
     };
 
-    const handleRegister = (name, email, password) => {
-        if (users.find(u => u.email === email)) return false;
-        const newUser = { id: Date.now().toString(), name, email, password };
+    const handleRegister = (name, email, age, mobile, password) => {
+        if (users.find(u => u.email.toLowerCase() === email.toLowerCase() || u.mobile === mobile)) return false;
+        const newUser = { id: Date.now().toString(), name, email, age, mobile, password };
         const newUsers = [...users, newUser];
         setUsers(newUsers);
         setCurrentUser(newUser);
@@ -460,10 +425,9 @@ const App = () => {
         { id: 'about', label: 'About' }
     ];
 
-    // TEMPORARILY DISABLED for Razorpay Team Verification
-    // if (!currentUser) {
-    //     return <AuthView onLogin={handleLogin} onRegister={handleRegister} />;
-    // }
+    if (!currentUser) {
+        return <AuthView onLogin={handleLogin} onRegister={handleRegister} />;
+    }
 
     if (selectedPlan) {
         return (
@@ -497,11 +461,9 @@ const App = () => {
                 <div className="ribbon-item dropdown">
                     File
                     <div className="ribbon-dropdown">
-                        <div className="dropdown-item" onClick={() => document.getElementById('import-file').click()}>Open Project (JSON)</div>
                         <div className="dropdown-item" onClick={() => setCurrentView('kiosk')} style={{ fontWeight: 'bold' }}>🖥️ Kiosk Mode (Players)</div>
                         <div className="dropdown-item" onClick={() => handleProAction(() => setCurrentView('badges'))}>🪪 Print Player Badges</div>
                         <hr style={{ opacity: 0.1, margin: '5px 0' }} />
-                        <div className="dropdown-item" onClick={exportData}>Save Project (JSON)</div>
                         <div className="dropdown-item" onClick={exportToExcel}>Export Standings (CSV)</div>
                         <div className="dropdown-item" onClick={() => handleProAction(exportFideTRF)} style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Export FIDE TRF 🏆</div>
                         <div className="dropdown-item" onClick={handleSyncToSheets} style={{ color: '#10b981', fontWeight: 'bold' }}>Sync Live to Web/Sheets 🟢</div>
@@ -509,13 +471,6 @@ const App = () => {
                         <hr style={{ opacity: 0.1, margin: '5px 0' }} />
                         <div className="dropdown-item" onClick={resetTournament} style={{ color: '#ef4444' }}>Reset App</div>
                     </div>
-                    <input
-                        type="file"
-                        id="import-file"
-                        style={{ display: 'none' }}
-                        accept=".json"
-                        onChange={importData}
-                    />
                 </div>
 
                 {navItems.map(item => (
