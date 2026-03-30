@@ -6,6 +6,9 @@ import AuthView from './components/AuthView';
 import PaymentGatewayView from './components/PaymentGatewayView';
 import CertificateView from './components/CertificateView';
 import MatchSlipsView from './components/MatchSlipsView';
+import KioskModeView from './components/KioskModeView';
+import PlayerBadgesView from './components/PlayerBadgesView';
+import ReportCardView from './components/ReportCardView';
 
 const App = () => {
     // --- Persistence (IndexedDB) ---
@@ -24,6 +27,7 @@ const App = () => {
     const [currentUser, setCurrentUser] = useState(null);
 
     const [selectedCertificatePlayer, setSelectedCertificatePlayer] = useState(null);
+    const [selectedReportPlayer, setSelectedReportPlayer] = useState(null);
     const [printingSlipsRound, setPrintingSlipsRound] = useState(null);
     
     // Feature States
@@ -471,6 +475,14 @@ const App = () => {
         );
     }
 
+    if (currentView === 'kiosk') {
+        return <KioskModeView rounds={rounds} onExit={() => setCurrentView('dashboard')} />;
+    }
+
+    if (currentView === 'badges') {
+        return <PlayerBadgesView players={players} onExit={() => setCurrentView('dashboard')} />;
+    }
+
     return (
         <div>
             <nav className="ribbon">
@@ -486,6 +498,9 @@ const App = () => {
                     File
                     <div className="ribbon-dropdown">
                         <div className="dropdown-item" onClick={() => document.getElementById('import-file').click()}>Open Project (JSON)</div>
+                        <div className="dropdown-item" onClick={() => setCurrentView('kiosk')} style={{ fontWeight: 'bold' }}>🖥️ Kiosk Mode (Players)</div>
+                        <div className="dropdown-item" onClick={() => handleProAction(() => setCurrentView('badges'))}>🪪 Print Player Badges</div>
+                        <hr style={{ opacity: 0.1, margin: '5px 0' }} />
                         <div className="dropdown-item" onClick={exportData}>Save Project (JSON)</div>
                         <div className="dropdown-item" onClick={exportToExcel}>Export Standings (CSV)</div>
                         <div className="dropdown-item" onClick={() => handleProAction(exportFideTRF)} style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Export FIDE TRF 🏆</div>
@@ -587,6 +602,7 @@ const App = () => {
                         handleSyncToSheets={handleSyncToSheets}
                         exportToExcel={exportToExcel}
                         onGenerateCertificate={(p, rank) => handleProAction(() => setSelectedCertificatePlayer({ ...p, rank }))}
+                        onGenerateReport={(p, rank) => handleProAction(() => setSelectedReportPlayer({ ...p, rank }))}
                     />
                 )}
                 {currentView === 'about' && <AboutView />}
@@ -606,6 +622,19 @@ const App = () => {
                     tournamentMeta={tournamentMeta}
                     onClose={() => setSelectedCertificatePlayer(null)}
                 />
+            )}
+
+            {selectedReportPlayer && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: '#fff' }}>
+                    <ReportCardView 
+                        player={selectedReportPlayer} 
+                        rank={selectedReportPlayer.rank} 
+                        standings={standings} 
+                        rounds={rounds} 
+                        tournamentMeta={tournamentMeta} 
+                        onExit={() => setSelectedReportPlayer(null)} 
+                    />
+                </div>
             )}
             
             {printingSlipsRound && (
@@ -1040,7 +1069,7 @@ const PairingView = ({
     );
 };
 
-const StandingsView = ({ standings, exportToExcel, handleSyncToSheets, onGenerateCertificate }) => (
+const StandingsView = ({ standings, exportToExcel, handleSyncToSheets, onGenerateCertificate, onGenerateReport }) => (
     <div className="fade-in">
         <div className="flex-between" style={{ marginBottom: '2rem' }}>
             <h2 className="neon-text">Tournament Final Standings</h2>
@@ -1078,12 +1107,18 @@ const StandingsView = ({ standings, exportToExcel, handleSyncToSheets, onGenerat
                                 <td>{p.blackWins || 0}</td>
                                 <td className="no-print">
                                     <button 
-                                        className="btn-icon" 
-                                        style={{ padding: '0.2rem 0.5rem', fontSize: '1rem' }}
+                                        className="btn-ghost" 
+                                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginRight: '5px' }}
                                         onClick={() => onGenerateCertificate(p, idx + 1)}
-                                        title="Generate Certificate"
                                     >
-                                        📜
+                                        Certificate
+                                    </button>
+                                    <button 
+                                        className="btn-ghost" 
+                                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                                        onClick={() => onGenerateReport(p, idx + 1)}
+                                    >
+                                        Report
                                     </button>
                                 </td>
                             </tr>
