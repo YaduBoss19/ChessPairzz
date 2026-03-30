@@ -631,7 +631,18 @@ const DashboardView = ({
     showBulkEntry, setShowBulkEntry, bulkText, setBulkText, bulkAddPlayers,
     onGenerateCertificate,
     fideId, setFideId, isFetchingFide, fetchFidePlayer
-}) => (
+}) => {
+    const [publicSheetUrl, setPublicSheetUrl] = React.useState(localStorage.getItem('googleSheetPublicUrl') || '');
+
+    const handleSetUrl = () => {
+        const url = prompt("Enter your public Google Sheet Share Link (so players can scan & view it):", publicSheetUrl);
+        if (url !== null) {
+            localStorage.setItem('googleSheetPublicUrl', url.trim());
+            setPublicSheetUrl(url.trim());
+        }
+    };
+
+    return (
     <div className="fade-in">
         <h1 className="hero-logo">chesspair<span>zzz</span></h1>
 
@@ -652,10 +663,19 @@ const DashboardView = ({
                     </div>
 
                     <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', borderTop: '1px solid var(--glass-border)', paddingTop: '1.5rem' }}>
-                        <div style={{ padding: '8px', background: '#fff', borderRadius: '8px', marginBottom: '10px' }}>
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(window.location.origin + '?live=true')}`} alt="Live QR" style={{ display: 'block' }} />
-                        </div>
-                        <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>Scan for Live Results</span>
+                        {publicSheetUrl ? (
+                            <div style={{ padding: '8px', background: '#fff', borderRadius: '8px', marginBottom: '10px' }}>
+                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(publicSheetUrl)}`} alt="Live QR" style={{ display: 'block' }} />
+                            </div>
+                        ) : (
+                            <div style={{ padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '10px', textAlign: 'center', color: '#888' }}>
+                                No Link Set
+                            </div>
+                        )}
+                        <span style={{ fontSize: '0.7rem', opacity: 0.5, marginBottom: '10px' }}>Scan for Live Results</span>
+                        <button className="btn-ghost" style={{ fontSize: '0.7rem' }} onClick={handleSetUrl}>
+                            {publicSheetUrl ? "Change Google Sheet Link" : "Set Google Sheet Link"}
+                        </button>
                     </div>
                 </div>
 
@@ -896,7 +916,8 @@ const DashboardView = ({
             </div>
         </div>
     </div>
-);
+    );
+};
 
 const PairingView = ({
     tournamentStarted, selectedRoundIndex, rounds, setSelectedRoundIndex,
