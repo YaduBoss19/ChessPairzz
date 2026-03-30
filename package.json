@@ -13,7 +13,7 @@
     "electron:package": "vite build && electron-packager . chesspairzzz --platform=win32 --arch=x64 --out=release --overwrite"
   },
   "dependencies": {
-    "firebase": "^12.10.0",
+    "@emailjs/browser": "^4.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "xlsx": "^0.18.5"

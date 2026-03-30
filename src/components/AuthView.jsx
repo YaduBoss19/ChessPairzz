@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import emailjs from '@emailjs/browser';
 
 const AuthView = ({ onLogin, onRegister }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +18,7 @@ const AuthView = ({ onLogin, onRegister }) => {
     // OTP State
     const [otpSent, setOtpSent] = useState(false);
     const [otpValue, setOtpValue] = useState('');
+    const [expectedOtp, setExpectedOtp] = useState('1234');
     
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
@@ -48,16 +50,36 @@ const AuthView = ({ onLogin, onRegister }) => {
             return;
         }
 
-        // Simulate sending OTP
-        setOtpSent(true);
-        setSuccessMsg(`Simulated OTP sent to ${mobile}. (Use 1234)`);
+        // Generate random 4-digit OTP
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        setExpectedOtp(code);
+        
+        // Attempt to send real OTP via EmailJS
+        // Note: Replace these placeholder credentials with real EmailJS keys
+        const SERVICE_ID = 'YOUR_EMAILJS_SERVICE_ID';
+        const TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';
+        const PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY';
+
+        emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+            to_email: email,
+            to_name: name,
+            otp_code: code
+        }, PUBLIC_KEY).then(() => {
+            setOtpSent(true);
+            setSuccessMsg(`Real OTP sent to ${email}! Please check your inbox.`);
+        }).catch((err) => {
+            console.warn("EmailJS not configured, falling back to simulated OTP.", err);
+            setExpectedOtp('1234');
+            setOtpSent(true);
+            setSuccessMsg(`EmailJS not configured. Simulated OTP '1234' generated for ${mobile}.`);
+        });
     };
 
     const handleVerifyOtpAndRegister = (e) => {
         e.preventDefault();
         setError('');
         
-        if (otpValue !== '1234') {
+        if (otpValue !== expectedOtp) {
             setError('Invalid OTP code. Please try again.');
             return;
         }
