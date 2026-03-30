@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateRound1, generateSubsequentRound, generateRoundRobinPairings, calculateStandings, RESULTS } from './utils/pairing';
 import * as XLSX from 'xlsx';
-import { saveToDB, loadFromDB, clearDB } from './utils/firebase';
+import { saveToDB, loadFromDB, clearDB, syncToGoogleSheets } from './utils/storage';
 import AuthView from './components/AuthView';
 import PaymentGatewayView from './components/PaymentGatewayView';
 import CertificateView from './components/CertificateView';
@@ -229,7 +229,23 @@ const App = () => {
                 setCurrentView('dashboard');
             });
         }
+    };
 
+    const handleSyncToSheets = async () => {
+        let scriptUrl = localStorage.getItem('googleScriptUrl');
+        if (!scriptUrl) {
+            scriptUrl = window.prompt("To connect your Google Sheet Backend, please enter your Google Apps Script Web App URL:\n\nIf you don't have one, ask the developer for the Apps Script code snippet.");
+            if (!scriptUrl) return;
+            localStorage.setItem('googleScriptUrl', scriptUrl.trim());
+        }
+        
+        const success = await syncToGoogleSheets(players, rounds, tournamentMeta, standings);
+        if (success) {
+            alert("Success! Your live data has been synced to your Google Sheet backend.");
+        } else {
+            alert("Sync Failed. Please check your Web App URL or internet connection.");
+            localStorage.removeItem('googleScriptUrl'); // Allow them to reset it
+        }
     };
 
     const exportData = () => {
@@ -473,6 +489,7 @@ const App = () => {
                         <div className="dropdown-item" onClick={exportData}>Save Project (JSON)</div>
                         <div className="dropdown-item" onClick={exportToExcel}>Export Standings (CSV)</div>
                         <div className="dropdown-item" onClick={() => handleProAction(exportFideTRF)} style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Export FIDE TRF 🏆</div>
+                        <div className="dropdown-item" onClick={handleSyncToSheets} style={{ color: '#10b981', fontWeight: 'bold' }}>Sync Live to Web/Sheets 🟢</div>
                         <div className="dropdown-item" onClick={printReport}>Print / Save as PDF</div>
                         <hr style={{ opacity: 0.1, margin: '5px 0' }} />
                         <div className="dropdown-item" onClick={resetTournament} style={{ color: '#ef4444' }}>Reset App</div>
@@ -567,6 +584,7 @@ const App = () => {
                 {currentView === 'standings' && (
                     <StandingsView
                         standings={standings}
+                        handleSyncToSheets={handleSyncToSheets}
                         exportToExcel={exportToExcel}
                         onGenerateCertificate={(p, rank) => handleProAction(() => setSelectedCertificatePlayer({ ...p, rank }))}
                     />
@@ -1001,11 +1019,14 @@ const PairingView = ({
     );
 };
 
-const StandingsView = ({ standings, exportToExcel, onGenerateCertificate }) => (
+const StandingsView = ({ standings, exportToExcel, handleSyncToSheets, onGenerateCertificate }) => (
     <div className="fade-in">
         <div className="flex-between" style={{ marginBottom: '2rem' }}>
             <h2 className="neon-text">Tournament Final Standings</h2>
-            <button className="btn-ghost" onClick={exportToExcel}>Export to Excel</button>
+            <div>
+                <button className="btn-ghost" onClick={handleSyncToSheets} style={{ marginRight: '0.5rem', borderColor: '#10b981', color: '#10b981' }}>Sync Live to Google Sheets</button>
+                <button className="btn-ghost" onClick={exportToExcel}>Export to Excel</button>
+            </div>
         </div>
         <div className="glass-card">
             <div style={{ overflowX: 'auto' }}>
