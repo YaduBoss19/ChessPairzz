@@ -3,30 +3,30 @@ import emailjs from '@emailjs/browser';
 
 const AuthView = ({ onLogin, onRegister }) => {
     const [isLogin, setIsLogin] = useState(true);
-    
+
     // Login Fields
     const [identifier, setIdentifier] = useState(''); // Name or Email
     const [loginPassword, setLoginPassword] = useState('');
-    
+
     // Registration Fields
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [age, setAge] = useState('');
     const [mobile, setMobile] = useState('');
     const [password, setPassword] = useState('');
-    
+
     // OTP State
     const [otpSent, setOtpSent] = useState(false);
     const [otpValue, setOtpValue] = useState('');
     const [expectedOtp, setExpectedOtp] = useState('1234');
-    
+
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
 
     const handleLoginSubmit = (e) => {
         e.preventDefault();
         setError('');
-        
+
         if (!identifier || !loginPassword) {
             setError('Please enter Name/Email and Password.');
             return;
@@ -39,7 +39,7 @@ const AuthView = ({ onLogin, onRegister }) => {
     const handleRegistrationRequest = (e) => {
         e.preventDefault();
         setError('');
-        
+
         if (!name || !email || !age || !mobile || !password) {
             setError('All fields are required.');
             return;
@@ -53,12 +53,12 @@ const AuthView = ({ onLogin, onRegister }) => {
         // Generate random 4-digit OTP
         const code = Math.floor(1000 + Math.random() * 9000).toString();
         setExpectedOtp(code);
-        
+
         // Attempt to send real OTP via EmailJS
         // Note: Replace these placeholder credentials with real EmailJS keys
-        const SERVICE_ID = 'YOUR_EMAILJS_SERVICE_ID';
-        const TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';
-        const PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY';
+        const SERVICE_ID = 'service_pumexyk';
+        const TEMPLATE_ID = 'template_lnc4157';
+        const PUBLIC_KEY = 'IJouOHqylHxLFcbed';
 
         emailjs.send(SERVICE_ID, TEMPLATE_ID, {
             to_email: email,
@@ -78,7 +78,7 @@ const AuthView = ({ onLogin, onRegister }) => {
     const handleVerifyOtpAndRegister = (e) => {
         e.preventDefault();
         setError('');
-        
+
         if (otpValue !== expectedOtp) {
             setError('Invalid OTP code. Please try again.');
             return;
@@ -99,7 +99,7 @@ const AuthView = ({ onLogin, onRegister }) => {
                 <h1 className="hero-logo" style={{ fontSize: '2rem', marginBottom: '1rem', textAlign: 'center' }}>
                     chesspair<span style={{ color: 'var(--primary)' }}>zzz</span>
                 </h1>
-                
+
                 <p style={{ textAlign: 'center', opacity: 0.7, marginBottom: '2rem', fontSize: '0.9rem' }}>Secure Offline Tournament Manager</p>
 
                 <h2 className="neon-text" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
