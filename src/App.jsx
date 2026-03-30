@@ -958,6 +958,63 @@ const PairingView = ({
     const activeRound = rounds[currentRoundIndex];
     if (!activeRound) return null;
 
+    const pullGoogleFormResults = async () => {
+        let csvUrl = localStorage.getItem('googleFormCsvUrl');
+        if (!csvUrl) {
+            csvUrl = prompt("Enter the 'Publish to Web' CSV Link from your Google Form Responses Sheet:");
+            if (!csvUrl) return;
+            localStorage.setItem('googleFormCsvUrl', csvUrl.trim());
+        }
+
+        try {
+            const res = await fetch(csvUrl);
+            const text = await res.text();
+            
+            // Basic CSV parser (ignoring complex quotes for simplicity)
+            const rows = text.split('\n').map(row => row.split(','));
+            if (rows.length < 2) {
+                alert("No results found in the spreadsheet yet.");
+                return;
+            }
+
+            let updatedCount = 0;
+            const headers = rows[0].map(h => h.toLowerCase().replace(/['"]/g, '').trim());
+            // Attempt to find column indices flexibly
+            let boardCol = headers.findIndex(h => h.includes('board'));
+            let resultCol = headers.findIndex(h => h.includes('result'));
+
+            // Fallback for standard 3-column Form (Timestamp, Board, Result)
+            if (boardCol === -1) boardCol = 1;
+            if (resultCol === -1) resultCol = 2;
+
+            // Process from oldest to newest to keep the latest submission
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (cols.length <= Math.max(boardCol, resultCol)) continue;
+                
+                const bVal = cols[boardCol].replace(/['"]/g, '').trim();
+                const rVal = cols[resultCol].replace(/['"]/g, '').trim();
+                const boardNum = parseInt(bVal, 10);
+
+                if (!isNaN(boardNum) && boardNum > 0 && boardNum <= activeRound.pairings.length) {
+                    let finalResult = null;
+                    if (rVal.includes('1-0') || rVal.includes('White')) finalResult = '1-0';
+                    else if (rVal.includes('0-1') || rVal.includes('Black')) finalResult = '0-1';
+                    else if (rVal.includes('0.5-0.5') || rVal.includes('Draw')) finalResult = '0.5-0.5';
+
+                    if (finalResult && activeRound.pairings[boardNum - 1].result !== finalResult) {
+                        updateResult(activeRound.number, boardNum - 1, finalResult);
+                        updatedCount++;
+                    }
+                }
+            }
+            alert(`Successfully pulled and updated ${updatedCount} incoming results!`);
+        } catch (e) {
+            alert("Failed to pull from Google Forms. Make sure you entered a valid CSV Published Link.\n" + e.message);
+            localStorage.removeItem('googleFormCsvUrl');
+        }
+    };
+
     return (
         <div className="fade-in">
             <div className="flex-between" style={{ marginBottom: '2rem' }}>
@@ -976,6 +1033,9 @@ const PairingView = ({
                     </div>
                 </div>
                 <div>
+                    {!activeRound.completed && (
+                        <button className="btn-ghost" style={{ marginRight: '0.5rem', color: '#8b5cf6', borderColor: '#8b5cf6' }} onClick={pullGoogleFormResults}>📥 Pull Form Results</button>
+                    )}
                     <button className="btn-ghost" style={{ marginRight: '0.5rem', color: '#10b981', borderColor: '#10b981' }} onClick={() => onBroadcastWhatsApp(activeRound)}>💬 WhatsApp</button>
                     <button className="btn-ghost" style={{ marginRight: '0.5rem' }} onClick={() => setPrintingSlipsRound(activeRound)}>🖨 Slips</button>
                     <button className="btn-ghost" style={{ marginRight: '0.5rem' }} onClick={() => window.print()}>Print Pairings</button>
