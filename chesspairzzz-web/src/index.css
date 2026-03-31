@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Syncopate:wght@400;700&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.web-portal {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-nav {
+  background: #020617;
+  padding: 1.5rem 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-family: 'Syncopate', sans-serif;
+  font-weight: 700;
+  color: #f8fafc;
+  font-size: 1.5rem;
+}
+
+.logo span {
+  color: #38bdf8;
+}
+
+.logo .badge {
+  background: #ef4444;
+  color: white;
+  padding: 0.1rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  vertical-align: top;
+  margin-left: 0.5rem;
+}
+
+.tournament-header {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  padding: 4rem 3rem;
+  text-align: center;
+}
+
+.tournament-header h1 {
+  font-size: 3rem;
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.meta-info {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  font-size: 1.2rem;
+}
+
+.portal-content {
+  flex: 1;
+  padding: 3rem;
+  max-width: 1200px;
+  margin: -4rem auto 0 auto;
+  width: 100%;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+th {
+  text-align: left;
+  padding: 1.2rem;
+  background: #f1f5f9;
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+td {
+  padding: 1.5rem 1.2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.top-three {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.rank-cell {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.name-cell strong {
+  font-size: 1.1rem;
+}
+
+.points-cell {
+  font-weight: 900;
+  color: #0ea5e9;
+  font-size: 1.2rem;
+}
+
+.loading-screen, .error-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #0c4a6e;
+}
+
+.loader {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #0ea5e9;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 2rem;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { generateRound1, generateSubsequentRound, generateRoundRobinPairings, calculateStandings, RESULTS } from './utils/pairing';
 import * as XLSX from 'xlsx';
-import { saveToDB, loadFromDB, clearDB, syncToGoogleSheets } from './utils/storage';
+import { saveToDB, loadFromDB, clearDB } from './utils/storage';
+import { publishToCloud } from './firebase';
 import AuthView from './components/AuthView';
 import PaymentGatewayView from './components/PaymentGatewayView';
 import CertificateView from './components/CertificateView';
@@ -235,20 +236,30 @@ const App = () => {
         }
     };
 
-    const handleSyncToSheets = async () => {
-        let scriptUrl = localStorage.getItem('googleScriptUrl');
-        if (!scriptUrl) {
-            scriptUrl = window.prompt("To connect your Google Sheet Backend, please enter your Google Apps Script Web App URL:\n\nIf you don't have one, ask the developer for the Apps Script code snippet.");
-            if (!scriptUrl) return;
-            localStorage.setItem('googleScriptUrl', scriptUrl.trim());
+    const handleGoLiveToCloud = async () => {
+        if (!tournamentMeta.name) {
+            alert("Please set a Tournament Name in Details before going live.");
+            return;
         }
+
+        const slug = tournamentMeta.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         
-        const success = await syncToGoogleSheets(players, rounds, tournamentMeta, standings);
-        if (success) {
-            alert("Success! Your live data has been synced to your Google Sheet backend.");
-        } else {
-            alert("Sync Failed. Please check your Web App URL or internet connection.");
-            localStorage.removeItem('googleScriptUrl'); // Allow them to reset it
+        try {
+            const success = await publishToCloud(slug, {
+                tournamentMeta,
+                players,
+                rounds,
+                standings,
+                lastUpdatedTime: new Date().toISOString()
+            });
+            
+            if (success) {
+                alert(`✅ Successfully published to Live Cloud!\n\nPlayers can now view standings live at: \nlive.chesspairzzz.com/${slug}`);
+            } else {
+                alert("❌ Failed to publish to cloud. Check internet connection.");
+            }
+        } catch (error) {
+            alert(`Error updating cloud: ${error.message}`);
         }
     };
 
@@ -555,7 +566,7 @@ const App = () => {
                 {currentView === 'standings' && (
                     <StandingsView
                         standings={standings}
-                        handleSyncToSheets={handleSyncToSheets}
+                        handleGoLiveToCloud={handleGoLiveToCloud}
                         exportToExcel={exportToExcel}
                         onGenerateCertificate={(p, rank) => handleProAction(() => setSelectedCertificatePlayer({ ...p, rank }))}
                         onGenerateAllCertificates={() => handleProAction(() => {
@@ -1031,13 +1042,13 @@ const PairingView = ({
     );
 };
 
-const StandingsView = ({ standings, exportToExcel, handleSyncToSheets, onGenerateCertificate, onGenerateAllCertificates, onGenerateReport }) => (
+const StandingsView = ({ standings, exportToExcel, handleGoLiveToCloud, onGenerateCertificate, onGenerateAllCertificates, onGenerateReport }) => (
     <div className="fade-in">
         <div className="flex-between" style={{ marginBottom: '2rem' }}>
             <h2 className="neon-text">Tournament Final Standings</h2>
             <div>
                 <button className="btn-ghost" onClick={onGenerateAllCertificates} style={{ marginRight: '0.5rem', borderColor: '#38bdf8', color: '#38bdf8' }}>🏆 Print All Certificates</button>
-                <button className="btn-ghost" onClick={handleSyncToSheets} style={{ marginRight: '0.5rem', borderColor: '#10b981', color: '#10b981' }}>Sync Live to Google Sheets</button>
+                <button className="btn-primary" onClick={handleGoLiveToCloud} style={{ marginRight: '0.5rem', background: 'linear-gradient(to right, #10b981, #059669)', color: '#fff', border: 'none', boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)' }}>🌐 Go Live to Web Portal</button>
                 <button className="btn-ghost" onClick={exportToExcel}>Export to Excel</button>
             </div>
         </div>
