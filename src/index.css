@@ -85,17 +85,55 @@ body.light .btn-icon {
     padding: 2rem;
 }
 
+.neon-text {
+    color: var(--primary); 
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    animation: neon-pulse 3s infinite alternate;
+}
+
+@keyframes neon-pulse {
+    0% { filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.2)); }
+    100% { filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5)); }
+}
+
+.fade-in {
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .glass-card {
     background: var(--glass);
     border: 1px solid var(--glass-border);
     border-radius: var(--card-radius);
     padding: 2.5rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); /* Clean, professional shadow */
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 0 20px rgba(56, 189, 248, 0.05); 
     margin-bottom: 2rem;
+    backdrop-filter: blur(12px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.neon-text {
-    color: var(--primary); /* Removed neon gradient for cleaner flat text */
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(56, 189, 248, 0.1); 
+}
+
+/* Base button animations */
+button {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+button:active {
+    transform: scale(0.97);
 }
 
 button {

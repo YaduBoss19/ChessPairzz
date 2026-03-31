@@ -7,6 +7,7 @@ import PaymentGatewayView from './components/PaymentGatewayView';
 import CertificateView from './components/CertificateView';
 import MatchSlipsView from './components/MatchSlipsView';
 import KioskModeView from './components/KioskModeView';
+import TVModeView from './components/TVModeView';
 import PlayerBadgesView from './components/PlayerBadgesView';
 import ReportCardView from './components/ReportCardView';
 
@@ -443,6 +444,11 @@ const App = () => {
         return <KioskModeView rounds={rounds} onExit={() => setCurrentView('dashboard')} />;
     }
 
+    if (currentView === 'tv') {
+        const activeRound = rounds.length > 0 ? rounds[rounds.length - 1] : null;
+        return <TVModeView activeRound={activeRound} onExit={() => setCurrentView('dashboard')} />;
+    }
+
     if (currentView === 'badges') {
         return <PlayerBadgesView players={players} onExit={() => setCurrentView('dashboard')} />;
     }
@@ -461,7 +467,8 @@ const App = () => {
                 <div className="ribbon-item dropdown">
                     File
                     <div className="ribbon-dropdown">
-                        <div className="dropdown-item" onClick={() => setCurrentView('kiosk')} style={{ fontWeight: 'bold' }}>🖥️ Kiosk Mode (Players)</div>
+                        <div className="dropdown-item" onClick={() => setCurrentView('kiosk')} style={{ fontWeight: 'bold' }}>🖥️ Interactive Kiosk Mode</div>
+                        <div className="dropdown-item" onClick={() => setCurrentView('tv')} style={{ fontWeight: 'bold' }}>📺 Airport TV Mode (Pairings)</div>
                         <div className="dropdown-item" onClick={() => handleProAction(() => setCurrentView('badges'))}>🪪 Print Player Badges</div>
                         <hr style={{ opacity: 0.1, margin: '5px 0' }} />
                         <div className="dropdown-item" onClick={exportToExcel}>Export Standings (CSV)</div>
