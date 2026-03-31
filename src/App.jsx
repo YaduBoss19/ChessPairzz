@@ -7,7 +7,6 @@ import PaymentGatewayView from './components/PaymentGatewayView';
 import CertificateView from './components/CertificateView';
 import MatchSlipsView from './components/MatchSlipsView';
 import KioskModeView from './components/KioskModeView';
-import TVModeView from './components/TVModeView';
 import PlayerBadgesView from './components/PlayerBadgesView';
 import ReportCardView from './components/ReportCardView';
 
@@ -444,11 +443,6 @@ const App = () => {
         return <KioskModeView rounds={rounds} onExit={() => setCurrentView('dashboard')} />;
     }
 
-    if (currentView === 'tv') {
-        const activeRound = rounds.length > 0 ? rounds[rounds.length - 1] : null;
-        return <TVModeView activeRound={activeRound} onExit={() => setCurrentView('dashboard')} />;
-    }
-
     if (currentView === 'badges') {
         return <PlayerBadgesView players={players} onExit={() => setCurrentView('dashboard')} />;
     }
@@ -564,6 +558,10 @@ const App = () => {
                         handleSyncToSheets={handleSyncToSheets}
                         exportToExcel={exportToExcel}
                         onGenerateCertificate={(p, rank) => handleProAction(() => setSelectedCertificatePlayer({ ...p, rank }))}
+                        onGenerateAllCertificates={() => handleProAction(() => {
+                            const rankedPlayers = standings.map((p, idx) => ({ ...p, rank: idx + 1 }));
+                            setSelectedCertificatePlayer(rankedPlayers);
+                        })}
                         onGenerateReport={(p, rank) => handleProAction(() => setSelectedReportPlayer({ ...p, rank }))}
                     />
                 )}
@@ -579,11 +577,13 @@ const App = () => {
             </div>
 
             {selectedCertificatePlayer && (
-                <CertificateView
-                    player={selectedCertificatePlayer}
-                    tournamentMeta={tournamentMeta}
-                    onClose={() => setSelectedCertificatePlayer(null)}
-                />
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: '#fff' }}>
+                    <CertificateView
+                        players={selectedCertificatePlayer}
+                        tournamentMeta={tournamentMeta}
+                        onClose={() => setSelectedCertificatePlayer(null)}
+                    />
+                </div>
             )}
 
             {selectedReportPlayer && (
@@ -1031,11 +1031,12 @@ const PairingView = ({
     );
 };
 
-const StandingsView = ({ standings, exportToExcel, handleSyncToSheets, onGenerateCertificate, onGenerateReport }) => (
+const StandingsView = ({ standings, exportToExcel, handleSyncToSheets, onGenerateCertificate, onGenerateAllCertificates, onGenerateReport }) => (
     <div className="fade-in">
         <div className="flex-between" style={{ marginBottom: '2rem' }}>
             <h2 className="neon-text">Tournament Final Standings</h2>
             <div>
+                <button className="btn-ghost" onClick={onGenerateAllCertificates} style={{ marginRight: '0.5rem', borderColor: '#38bdf8', color: '#38bdf8' }}>🏆 Print All Certificates</button>
                 <button className="btn-ghost" onClick={handleSyncToSheets} style={{ marginRight: '0.5rem', borderColor: '#10b981', color: '#10b981' }}>Sync Live to Google Sheets</button>
                 <button className="btn-ghost" onClick={exportToExcel}>Export to Excel</button>
             </div>
