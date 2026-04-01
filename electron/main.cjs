@@ -8,6 +8,7 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            webSecurity: false
         }
     });
 
