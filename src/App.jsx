@@ -473,12 +473,11 @@ const App = () => {
                     File
                     <div className="ribbon-dropdown">
                         <div className="dropdown-item" onClick={() => setCurrentView('kiosk')} style={{ fontWeight: 'bold' }}>🖥️ Interactive Kiosk Mode</div>
-                        <div className="dropdown-item" onClick={() => setCurrentView('tv')} style={{ fontWeight: 'bold' }}>📺 Airport TV Mode (Pairings)</div>
                         <div className="dropdown-item" onClick={() => handleProAction(() => setCurrentView('badges'))}>🪪 Print Player Badges</div>
                         <hr style={{ opacity: 0.1, margin: '5px 0' }} />
                         <div className="dropdown-item" onClick={exportToExcel}>Export Standings (CSV)</div>
                         <div className="dropdown-item" onClick={() => handleProAction(exportFideTRF)} style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Export FIDE TRF 🏆</div>
-                        <div className="dropdown-item" onClick={handleSyncToSheets} style={{ color: '#10b981', fontWeight: 'bold' }}>Sync Live to Web/Sheets 🟢</div>
+                        <div className="dropdown-item" onClick={handleGoLiveToCloud} style={{ color: '#10b981', fontWeight: 'bold' }}>Sync Live to Web Portal 🌐</div>
                         <div className="dropdown-item" onClick={printReport}>Print / Save as PDF</div>
                         <hr style={{ opacity: 0.1, margin: '5px 0' }} />
                         <div className="dropdown-item" onClick={resetTournament} style={{ color: '#ef4444' }}>Reset App</div>
