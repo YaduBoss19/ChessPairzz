@@ -410,24 +410,48 @@ const App = () => {
     const fetchFidePlayer = async () => {
         if (!fideId) return;
         setIsFetchingFide(true);
-        try {
-            const res = await fetch(`https://api.cors.lol/?url=https://fide-api.vercel.app/player_info/?fide_id=${fideId}`).catch(() => null);
-            if (res && res.ok) {
-                const data = await res.json();
-                let name = data.name || '';
-                if (name.includes(',')) {
-                    const parts = name.split(',').map(p => p.trim());
-                    name = `${parts[1]} ${parts[0]}`;
+
+        const proxies = [
+            url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            url => `https://api.cors.lol/?url=${encodeURIComponent(url)}`,
+            url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+        ];
+
+        const targetUrl = `https://fide-api.vercel.app/player_info/?fide_id=${fideId}`;
+        let success = false;
+
+        for (const getProxyUrl of proxies) {
+            try {
+                const proxyUrl = getProxyUrl(targetUrl);
+                const res = await fetch(proxyUrl).catch(() => null);
+                if (res && res.ok) {
+                    let data = await res.json();
+                    if (data && data.contents) {
+                        try {
+                            data = JSON.parse(data.contents);
+                        } catch (e) {}
+                    }
+                    if (data && data.name) {
+                        let name = data.name || '';
+                        if (name.includes(',')) {
+                            const parts = name.split(',').map(p => p.trim());
+                            name = `${parts[1]} ${parts[0]}`;
+                        }
+                        setPlayerName(name);
+                        setPlayerRating(data.classical_rating || data.rapid_rating || data.blitz_rating || 0);
+                        setPlayerAge(data.birth_year ? (new Date().getFullYear() - parseInt(data.birth_year)) : 0);
+                        setFideId('');
+                        success = true;
+                        break;
+                    }
                 }
-                setPlayerName(name);
-                setPlayerRating(data.classical_rating || data.rapid_rating || data.blitz_rating || 0);
-                setPlayerAge(data.birth_year ? (new Date().getFullYear() - parseInt(data.birth_year)) : 0);
-                setFideId('');
-            } else {
-                alert("Could not fetch FIDE data. Network error or invalid ID.");
+            } catch (e) {
+                console.warn("FIDE Proxy fetch iteration failed:", e);
             }
-        } catch (e) {
-            alert("Error fetching FIDE data.");
+        }
+
+        if (!success) {
+            alert("Could not fetch FIDE data. Network error or invalid ID.");
         }
         setIsFetchingFide(false);
     };
