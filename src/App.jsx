@@ -753,14 +753,44 @@ const DashboardView = ({
                         </div>
 
                         {showBulkEntry && (
-                            <div className="bulk-entry-container fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div style={{
+                                background: 'rgba(255, 255, 255, 0.01)',
+                                border: '1px dashed var(--glass-border)',
+                                borderRadius: '12px',
+                                padding: '1.25rem',
+                                marginBottom: '1.5rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.75rem'
+                            }} className="fade-in">
+                                <div style={{ fontSize: '0.75rem', opacity: 0.6, lineHeight: '1.4' }}>
+                                    Enter players one per line. Format: <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--primary)' }}>Name, Rating, Age</code>
+                                    <br />
+                                    Example: <span style={{ opacity: 0.8, fontFamily: 'monospace' }}>Hikaru Nakamura, 2875, 36</span>
+                                </div>
                                 <textarea
-                                    placeholder="Name, Rating (one per line)"
+                                    id="bulk-import-textarea"
+                                    placeholder="Hikaru Nakamura, 2875, 36&#10;Fabiano Caruana, 2804, 31&#10;Gukesh D, 2750, 17"
                                     value={bulkText}
                                     onChange={e => setBulkText(e.target.value)}
-                                    style={{ minHeight: '80px', marginBottom: '1rem' }}
+                                    style={{
+                                        minHeight: '120px',
+                                        marginBottom: 0,
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'monospace',
+                                        lineHeight: '1.5',
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        borderColor: 'var(--glass-border)'
+                                    }}
                                 />
-                                <button onClick={bulkAddPlayers} className="btn-ghost" style={{ width: '100%' }}>Import</button>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button onClick={bulkAddPlayers} style={{ flex: 1, padding: '0.6rem', fontSize: '0.8rem', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', color: '#020617' }}>
+                                        Import Players
+                                    </button>
+                                    <button className="btn-ghost" onClick={() => setShowBulkEntry(false)} style={{ padding: '0.6rem 1.2rem', fontSize: '0.8rem' }}>
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -800,14 +830,22 @@ const DashboardView = ({
                         {dashboardTab === 'ranking' && (
                             <table className="compact-table">
                                 <thead>
-                                    <tr><th>Sl. No</th><th>Name</th><th>Rating/Age</th><th>{tournamentStarted ? 'Pts' : ''}</th><th>Action</th></tr>
+                                    <tr>
+                                        <th>Sl. No</th>
+                                        <th>Name</th>
+                                        <th>Rating</th>
+                                        <th>Age</th>
+                                        <th>{tournamentStarted ? 'Pts' : ''}</th>
+                                        <th>Action</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
                                     {[...players].sort((a, b) => b.rating - a.rating || a.name.localeCompare(b.name)).map((p, idx) => (
                                         <tr key={p.id}>
                                             <td>{idx + 1}</td>
                                             <td><strong>{p.name}</strong></td>
-                                            <td>{p.rating} / {p.age || '-'}</td>
+                                            <td>{p.rating}</td>
+                                            <td>{p.age || '-'}</td>
                                             <td>{tournamentStarted ? (standings.find(s => s.id === p.id)?.points || 0) : ''}</td>
                                             <td>
                                                 <button className="btn-icon" onClick={() => setEditingPlayerId(p.id)}>✎</button>

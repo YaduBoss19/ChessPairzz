@@ -216,7 +216,7 @@ async function runTests() {
     
     const bulkInputText = `Ding Liren, 2780, 31\nIan Nepomniachtchi, 2775, 33\nAlireza Firouzja, 2760, 20\nPraggnanandhaa R, 2740, 18\nGukesh D, 2750, 17\nAnish Giri, 2745, 29\nWesley So, 2755, 30`;
     
-    await page.type('textarea[placeholder*="Name, Rating"]', bulkInputText);
+    await page.type('#bulk-import-textarea', bulkInputText);
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button'));
       const addBtn = btns.find(b => b.textContent.includes('Import'));
