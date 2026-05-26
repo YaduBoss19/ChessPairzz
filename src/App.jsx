@@ -604,6 +604,7 @@ const App = () => {
                             setSelectedCertificatePlayer(rankedPlayers);
                         })}
                         onGenerateReport={(p, rank) => handleProAction(() => setSelectedReportPlayer({ ...p, rank }))}
+                        tournamentMeta={tournamentMeta}
                     />
                 )}
                 {currentView === 'about' && <AboutView />}
@@ -1110,72 +1111,376 @@ const PairingView = ({
     );
 };
 
-const StandingsView = ({ standings, exportToExcel, handleGoLiveToCloud, onGenerateCertificate, onGenerateAllCertificates, onGenerateReport }) => (
-    <div className="fade-in">
-        <div className="flex-between" style={{ marginBottom: '2rem' }}>
-            <h2 className="neon-text">Tournament Final Standings</h2>
-            <div>
-                <button className="btn-ghost" onClick={onGenerateAllCertificates} style={{ marginRight: '0.5rem', borderColor: '#38bdf8', color: '#38bdf8' }}>🏆 Print All Certificates</button>
-                <button className="btn-primary" onClick={handleGoLiveToCloud} style={{ marginRight: '0.5rem', background: 'linear-gradient(to right, #10b981, #059669)', color: '#fff', border: 'none', boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)' }}>🌐 Go Live to Web Portal</button>
-                <button className="btn-ghost" onClick={exportToExcel}>Export to Excel</button>
+const StandingsView = ({ standings, exportToExcel, handleGoLiveToCloud, onGenerateCertificate, onGenerateAllCertificates, onGenerateReport, tournamentMeta }) => {
+    const [showPrizeBuilder, setShowPrizeBuilder] = useState(false);
+    const [allowDoubleDipping, setAllowDoubleDipping] = useState(false);
+    const [prizes, setPrizes] = useState([
+        { id: '1', name: '1st Place Open', type: 'open', rank: 1, reward: '$500' },
+        { id: '2', name: '2nd Place Open', type: 'open', rank: 2, reward: '$300' },
+        { id: '3', name: '3rd Place Open', type: 'open', rank: 3, reward: '$200' },
+        { id: '4', name: 'Best Under 16', type: 'age', ageLimit: 16, rank: 1, reward: '$100' },
+        { id: '5', name: 'Best Under 12', type: 'age', ageLimit: 12, rank: 1, reward: '$100' },
+        { id: '6', name: 'Best Under-1800 Rating', type: 'rating', ratingLimit: 1800, rank: 1, reward: '$100' }
+    ]);
+
+    const [newPrizeName, setNewPrizeName] = useState('');
+    const [newPrizeType, setNewPrizeType] = useState('open');
+    const [newPrizeLimit, setNewPrizeLimit] = useState('');
+    const [newPrizeRank, setNewPrizeRank] = useState(1);
+    const [newPrizeReward, setNewPrizeReward] = useState('');
+
+    const handleAddPrize = (e) => {
+        e.preventDefault();
+        if (!newPrizeName.trim()) return;
+
+        const newPrize = {
+            id: Date.now().toString(),
+            name: newPrizeName,
+            type: newPrizeType,
+            rank: parseInt(newPrizeRank) || 1,
+            reward: newPrizeReward || '-'
+        };
+
+        if (newPrizeType === 'age') {
+            newPrize.ageLimit = parseInt(newPrizeLimit) || 18;
+        } else if (newPrizeType === 'rating') {
+            newPrize.ratingLimit = parseInt(newPrizeLimit) || 2000;
+        }
+
+        setPrizes([...prizes, newPrize]);
+        setNewPrizeName('');
+        setNewPrizeLimit('');
+        setNewPrizeRank(1);
+        setNewPrizeReward('');
+    };
+
+    const handleDeletePrize = (id) => {
+        setPrizes(prizes.filter(p => p.id !== id));
+    };
+
+    const getWinners = () => {
+        if (!standings || standings.length === 0) return [];
+        const winners = [];
+        const awardedIds = new Set();
+
+        for (const prize of prizes) {
+            let winner = null;
+            if (prize.type === 'open') {
+                let matchCount = 0;
+                for (const p of standings) {
+                    if (!allowDoubleDipping && awardedIds.has(p.id)) {
+                        continue;
+                    }
+                    matchCount++;
+                    if (matchCount === prize.rank) {
+                        winner = p;
+                        break;
+                    }
+                }
+                if (!winner) {
+                    winner = standings[prize.rank - 1];
+                }
+                if (winner) {
+                    winners.push({ prize, player: winner });
+                    if (!allowDoubleDipping) {
+                        awardedIds.add(winner.id);
+                    }
+                }
+            } else if (prize.type === 'age') {
+                let matchCount = 0;
+                for (const p of standings) {
+                    if (p.age && p.age <= prize.ageLimit) {
+                        if (!allowDoubleDipping && awardedIds.has(p.id)) {
+                            continue;
+                        }
+                        matchCount++;
+                        if (matchCount === prize.rank) {
+                            winner = p;
+                            break;
+                        }
+                    }
+                }
+                if (winner) {
+                    winners.push({ prize, player: winner });
+                    if (!allowDoubleDipping) {
+                        awardedIds.add(winner.id);
+                    }
+                }
+            } else if (prize.type === 'rating') {
+                let matchCount = 0;
+                for (const p of standings) {
+                    if (p.rating && p.rating <= prize.ratingLimit) {
+                        if (!allowDoubleDipping && awardedIds.has(p.id)) {
+                            continue;
+                        }
+                        matchCount++;
+                        if (matchCount === prize.rank) {
+                            winner = p;
+                            break;
+                        }
+                    }
+                }
+                if (winner) {
+                    winners.push({ prize, player: winner });
+                    if (!allowDoubleDipping) {
+                        awardedIds.add(winner.id);
+                    }
+                }
+            }
+        }
+        return winners;
+    };
+
+    const winnersList = getWinners();
+
+    return (
+        <div className="fade-in">
+            <div className="flex-between no-print" style={{ marginBottom: '2rem' }}>
+                <h2 className="neon-text">Tournament Final Standings</h2>
+                <div>
+                    <button className="btn-ghost" onClick={() => setShowPrizeBuilder(!showPrizeBuilder)} style={{ marginRight: '0.5rem', borderColor: '#a855f7', color: '#a855f7' }}>
+                        🏆 {showPrizeBuilder ? 'Show Standings' : 'Prize Builder'}
+                    </button>
+                    <button className="btn-ghost" onClick={onGenerateAllCertificates} style={{ marginRight: '0.5rem', borderColor: '#38bdf8', color: '#38bdf8' }}>🏆 Print All Certificates</button>
+                    <button className="btn-primary" onClick={handleGoLiveToCloud} style={{ marginRight: '0.5rem', background: 'linear-gradient(to right, #10b981, #059669)', color: '#fff', border: 'none', boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)' }}>🌐 Go Live to Web Portal</button>
+                    <button className="btn-ghost" onClick={exportToExcel}>Export to Excel</button>
+                </div>
             </div>
-        </div>
-        <div className="glass-card">
-            <div style={{ overflowX: 'auto' }}>
-                <table style={{ minWidth: '800px' }}>
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Player</th>
-                            <th>Pts</th>
-                            <th>BH-C1</th>
-                            <th>BH</th>
-                            <th>Wins</th>
-                            <th>SB</th>
-                            <th>BW</th>
-                            <th className="no-print">Cert</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {standings.map((p, idx) => (
-                            <tr key={p.id}>
-                                <td>{idx + 1}</td>
-                                <td>{p.name} <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({p.rating || 0})</span></td>
-                                <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{p.points || 0}</td>
-                                <td>{p.buchholzCut1 || 0}</td>
-                                <td>{p.buchholz || 0}</td>
-                                <td>{p.wins || 0}</td>
-                                <td>{Number(p.sonnebornBerger || 0).toFixed(1)}</td>
-                                <td>{p.blackWins || 0}</td>
-                                <td className="no-print">
-                                    <button 
-                                        className="btn-ghost" 
-                                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginRight: '5px' }}
-                                        onClick={() => onGenerateCertificate(p, idx + 1)}
-                                    >
-                                        Certificate
-                                    </button>
-                                    <button 
-                                        className="btn-ghost" 
-                                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
-                                        onClick={() => onGenerateReport(p, idx + 1)}
-                                    >
-                                        Report
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            {standings.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.3 }}>
-                    No standings available yet. Start the tournament!
+
+            {showPrizeBuilder ? (
+                <div className="fade-in">
+                    <div className="flex-between no-print" style={{ marginBottom: '1.5rem' }}>
+                        <h3>🏆 Prize Structure & Winners Calculator</h3>
+                        <button className="btn-primary" onClick={() => window.print()} style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff' }}>
+                            🖨️ Print Prize Winners Report
+                        </button>
+                    </div>
+
+                    <div className="grid" style={{ gridTemplateColumns: '1fr 1.2fr', gap: '2rem', alignItems: 'start' }}>
+                        {/* Configuration Pane (no-print) */}
+                        <div className="glass-card no-print" style={{ padding: '1.5rem' }}>
+                            <h4 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>1. Rules & Constraints</h4>
+                            
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', marginBottom: '1.5rem', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={allowDoubleDipping} 
+                                    onChange={(e) => setAllowDoubleDipping(e.target.checked)}
+                                    style={{ width: 'auto', marginBottom: 0 }}
+                                />
+                                <div style={{ fontSize: '0.85rem' }}>
+                                    <strong style={{ display: 'block' }}>Allow Double-Dipping</strong>
+                                    <span style={{ opacity: 0.6, fontSize: '0.75rem' }}>Players can win multiple prizes (e.g., Open + Age Group). If unchecked, category prizes cascade down.</span>
+                                </div>
+                            </label>
+
+                            <h4 style={{ color: 'var(--primary)', marginBottom: '1rem', marginTop: '1.5rem' }}>2. Add New Prize Category</h4>
+                            <form onSubmit={handleAddPrize} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ fontSize: '0.8rem', opacity: 0.6, display: 'block', marginBottom: '0.25rem' }}>Prize Name</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. Best Female or Best U14" 
+                                        value={newPrizeName} 
+                                        onChange={(e) => setNewPrizeName(e.target.value)} 
+                                        style={{ marginBottom: 0 }}
+                                    />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.8rem', opacity: 0.6, display: 'block', marginBottom: '0.25rem' }}>Type</label>
+                                        <select 
+                                            value={newPrizeType} 
+                                            onChange={(e) => setNewPrizeType(e.target.value)}
+                                            style={{ marginBottom: 0, padding: '0.75rem' }}
+                                        >
+                                            <option style={{color:'#000'}} value="open">Open (Main)</option>
+                                            <option style={{color:'#000'}} value="age">Age Category</option>
+                                            <option style={{color:'#000'}} value="rating">Rating Category</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.8rem', opacity: 0.6, display: 'block', marginBottom: '0.25rem' }}>
+                                            {newPrizeType === 'open' ? 'Rank (1st, 2nd, etc)' : `${newPrizeType === 'age' ? 'Age' : 'Rating'} Limit`}
+                                        </label>
+                                        <input 
+                                            type="number" 
+                                            placeholder={newPrizeType === 'open' ? '1' : (newPrizeType === 'age' ? '16' : '1800')} 
+                                            value={newPrizeType === 'open' ? newPrizeRank : newPrizeLimit}
+                                            onChange={(e) => newPrizeType === 'open' ? setNewPrizeRank(e.target.value) : setNewPrizeLimit(e.target.value)}
+                                            style={{ marginBottom: 0 }}
+                                        />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                    {newPrizeType !== 'open' && (
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', opacity: 0.6, display: 'block', marginBottom: '0.25rem' }}>Category Rank</label>
+                                            <input 
+                                                type="number" 
+                                                placeholder="1" 
+                                                value={newPrizeRank} 
+                                                onChange={(e) => setNewPrizeRank(e.target.value)}
+                                                style={{ marginBottom: 0 }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div style={{ gridColumn: newPrizeType === 'open' ? '1 / -1' : 'auto' }}>
+                                        <label style={{ fontSize: '0.8rem', opacity: 0.6, display: 'block', marginBottom: '0.25rem' }}>Reward (Optional)</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="e.g. $100 or Trophy" 
+                                            value={newPrizeReward} 
+                                            onChange={(e) => setNewPrizeReward(e.target.value)}
+                                            style={{ marginBottom: 0 }}
+                                        />
+                                    </div>
+                                </div>
+                                <button type="submit" style={{ marginTop: '0.5rem', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', color: '#020617' }}>Add to Prize List</button>
+                            </form>
+
+                            <h4 style={{ color: 'var(--primary)', marginBottom: '1rem', marginTop: '2rem' }}>3. Configured Prizes</h4>
+                            <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
+                                <table className="compact-table" style={{ fontSize: '0.8rem' }}>
+                                    <thead>
+                                        <tr>
+                                            <th>Prize</th>
+                                            <th>Detail</th>
+                                            <th>Reward</th>
+                                            <th>Del</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {prizes.map(p => (
+                                            <tr key={p.id}>
+                                                <td><strong>{p.name}</strong></td>
+                                                <td>
+                                                    {p.type === 'open' ? `Rank ${p.rank}` : (p.type === 'age' ? `U${p.ageLimit} Rank ${p.rank}` : `U${p.ratingLimit} Rank ${p.rank}`)}
+                                                </td>
+                                                <td>{p.reward}</td>
+                                                <td>
+                                                    <button onClick={() => handleDeletePrize(p.id)} className="btn-icon delete" style={{ padding: '0.25rem 0.5rem', borderRadius: '4px' }}>✕</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Winners Display Card */}
+                        <div className="glass-card" style={{ padding: '2rem' }}>
+                            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                <h3 className="neon-text" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{tournamentMeta.name || 'Tournament'}</h3>
+                                <p style={{ opacity: 0.6, fontSize: '0.9rem', margin: 0 }}>Official Prize Winners Report</p>
+                                <div style={{ borderBottom: '2px solid var(--primary)', width: '60px', margin: '1rem auto 0' }}></div>
+                            </div>
+
+                            <table className="compact-table" style={{ fontSize: '0.95rem' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Prize Category</th>
+                                        <th>Winner Name</th>
+                                        <th>Stats</th>
+                                        <th style={{ textAlign: 'right' }}>Reward</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {winnersList.map(({ prize, player }) => (
+                                        <tr key={prize.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                                            <td style={{ padding: '1.2rem 0.5rem' }}>
+                                                <strong style={{ color: 'var(--primary)' }}>{prize.name}</strong>
+                                                <div style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '2px' }}>
+                                                    {prize.type === 'open' ? `Open Standings` : (prize.type === 'age' ? `Age limit: Under ${prize.ageLimit}` : `Rating limit: Under ${prize.ratingLimit}`)}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.2rem 0.5rem' }}>
+                                                <strong>{player.name}</strong>
+                                            </td>
+                                            <td style={{ padding: '1.2rem 0.5rem', fontSize: '0.85rem', opacity: 0.8 }}>
+                                                Pts: {player.points} | Rtg: {player.rating} | Age: {player.age || '-'}
+                                            </td>
+                                            <td style={{ padding: '1.2rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#10b981' }}>
+                                                {prize.reward}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {winnersList.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" style={{ textAlign: 'center', padding: '3rem', opacity: 0.3 }}>
+                                                No prizes configured or no players available.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+
+                            <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', opacity: 0.6 }} className="only-print">
+                                <div>Date: {new Date().toLocaleDateString()}</div>
+                                <div style={{ borderTop: '1px solid #000', width: '200px', textAlign: 'center', paddingTop: '0.5rem' }}>Chief Arbiter Signature</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="glass-card">
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ minWidth: '800px' }}>
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Player</th>
+                                    <th>Pts</th>
+                                    <th>BH-C1</th>
+                                    <th>BH</th>
+                                    <th>Wins</th>
+                                    <th>SB</th>
+                                    <th>BW</th>
+                                    <th className="no-print">Cert</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {standings.map((p, idx) => (
+                                    <tr key={p.id}>
+                                        <td>{idx + 1}</td>
+                                        <td>{p.name} <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({p.rating || 0})</span></td>
+                                        <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{p.points || 0}</td>
+                                        <td>{p.buchholzCut1 || 0}</td>
+                                        <td>{p.buchholz || 0}</td>
+                                        <td>{p.wins || 0}</td>
+                                        <td>{Number(p.sonnebornBerger || 0).toFixed(1)}</td>
+                                        <td>{p.blackWins || 0}</td>
+                                        <td className="no-print">
+                                            <button 
+                                                className="btn-ghost" 
+                                                style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginRight: '5px' }}
+                                                onClick={() => onGenerateCertificate(p, idx + 1)}
+                                            >
+                                                Certificate
+                                            </button>
+                                            <button 
+                                                className="btn-ghost" 
+                                                style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                                                onClick={() => onGenerateReport(p, idx + 1)}
+                                            >
+                                                Report
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    {standings.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.3 }}>
+                            No standings available yet. Start the tournament!
+                        </div>
+                    )}
                 </div>
             )}
         </div>
-    </div>
-);
+    );
+};
 
 const AboutView = () => (
     <div className="glass-card fade-in">
