@@ -14,10 +14,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 
-export const subscribeToTournament = (slug, callback) => {
+export const subscribeToTournament = (slug, callback, errorCallback) => {
     const tournamentRef = ref(db, 'tournaments/' + slug);
-    return onValue(tournamentRef, (snapshot) => {
-        const data = snapshot.val();
-        callback(data);
-    });
+    return onValue(tournamentRef, 
+        (snapshot) => {
+            const data = snapshot.val();
+            callback(data);
+        },
+        (error) => {
+            if (errorCallback) errorCallback(error);
+        }
+    );
 };

@@ -12,16 +12,23 @@ function App() {
     const pathSegments = window.location.pathname.split('/').filter(Boolean);
     const slug = pathSegments[0] || 'demo'; // fall back to 'demo' if none provided
 
-    const unsubscribe = subscribeToTournament(slug, (data) => {
-      if (data) {
-        setTournamentData(data);
-        setError(null);
-      } else {
-        setError(`Tournament '${slug}' not found or inactive.`);
-        setTournamentData(null);
+    const unsubscribe = subscribeToTournament(slug, 
+      (data) => {
+        if (data) {
+          setTournamentData(data);
+          setError(null);
+        } else {
+          setError(`Tournament '${slug}' not found or inactive.`);
+          setTournamentData(null);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Firebase subscription error:", err);
+        setError(`Database Connection Failed: ${err.message || 'Permission Denied'}. Please configure your Firebase Realtime Database rules to allow public read access.`);
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
     return () => unsubscribe();
   }, []);
