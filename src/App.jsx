@@ -411,10 +411,15 @@ const App = () => {
         if (!fideId) return;
         setIsFetchingFide(true);
         try {
-            const res = await fetch(`https://fide-api.vercel.app/player_info/?fide_id=${fideId}`).catch(() => null);
+            const res = await fetch(`https://api.cors.lol/?url=https://fide-api.vercel.app/player_info/?fide_id=${fideId}`).catch(() => null);
             if (res && res.ok) {
                 const data = await res.json();
-                setPlayerName(data.name || '');
+                let name = data.name || '';
+                if (name.includes(',')) {
+                    const parts = name.split(',').map(p => p.trim());
+                    name = `${parts[1]} ${parts[0]}`;
+                }
+                setPlayerName(name);
                 setPlayerRating(data.classical_rating || data.rapid_rating || data.blitz_rating || 0);
                 setPlayerAge(data.birth_year ? (new Date().getFullYear() - parseInt(data.birth_year)) : 0);
                 setFideId('');
