@@ -69,8 +69,8 @@ const KioskModeView = ({ rounds, onExit }) => {
                         value={searchQuery}
                         onChange={handleSearch}
                         style={{
-                            width: '100%', padding: '2rem', fontSize: '2.5rem', borderRadius: '24px', border: '3px solid var(--primary)',
-                            background: 'rgba(255,255,255,0.1)', color: '#fff', textAlign: 'center', outline: 'none', boxShadow: '0 0 40px rgba(14, 165, 233, 0.3)'
+                            width: '100%', padding: '1.2rem', fontSize: '1.2rem', borderRadius: '12px', border: '2px solid var(--primary)',
+                            background: 'rgba(255,255,255,0.1)', color: '#fff', textAlign: 'center', outline: 'none', boxShadow: '0 0 20px rgba(14, 165, 233, 0.2)'
                         }}
                         autoFocus
                     />
@@ -80,7 +80,7 @@ const KioskModeView = ({ rounds, onExit }) => {
                             <button 
                                 key={idx}
                                 className="glass-card" 
-                                style={{ padding: '1.5rem', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', border: '1px solid rgba(255,255,255,0.2)', '&:hover': { background: 'rgba(255,255,255,0.1)' } }}
+                                style={{ padding: '1rem', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', border: '1px solid rgba(255,255,255,0.2)' }}
                                 onClick={() => p.bye ? handleSelectPlayer({ white: p.player, black: {name: 'BYE'}, result: '*' }, true, p.boardNum) : handleSelectPlayer(p, p.matchPlayer === 'white', p.boardNum)}
                             >
                                 Tap here if you are <strong>{p.bye ? p.player.name : (p.matchPlayer === 'white' ? p.white.name : p.black.name)}</strong>
@@ -89,28 +89,28 @@ const KioskModeView = ({ rounds, onExit }) => {
                     </div>
                 </div>
             ) : (
-                <div className="glass-card fade-in" style={{ width: '100%', maxWidth: '800px', textAlign: 'center', padding: '4rem', border: selectedPairing.playingAs === 'White' ? '3px solid #fff' : '3px solid #333', background: selectedPairing.playingAs === 'White' ? 'linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))' : 'linear-gradient(145deg, rgba(0,0,0,0.8), rgba(0,0,0,0.4))' }}>
-                    <h2 style={{ fontSize: '2.5rem', marginBottom: '2rem', color: selectedPairing.playingAs === 'White' ? '#fff' : '#ccc' }}>Welcome, {selectedPairing.player.name}!</h2>
+                <div className="glass-card fade-in" style={{ width: '100%', maxWidth: '600px', textAlign: 'center', padding: '3rem', border: selectedPairing.playingAs === 'White' ? '3px solid #fff' : '3px solid #333', background: selectedPairing.playingAs === 'White' ? 'linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))' : 'linear-gradient(145deg, rgba(0,0,0,0.8), rgba(0,0,0,0.4))' }}>
+                    <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: selectedPairing.playingAs === 'White' ? '#fff' : '#ccc' }}>Welcome, {selectedPairing.player.name}!</h2>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: '3rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: '2rem' }}>
                         <div>
-                            <div style={{ fontSize: '1.5rem', opacity: 0.7 }}>You are playing</div>
-                            <div style={{ fontSize: '4rem', fontWeight: 'bold', color: selectedPairing.playingAs === 'White' ? '#fff' : '#000', textShadow: selectedPairing.playingAs === 'White' ? '0 0 10px rgba(255,255,255,0.5)' : 'none', background: selectedPairing.playingAs === 'Black' ? '#fff' : 'transparent', padding: '0 1rem', borderRadius: '12px' }}>
+                            <div style={{ fontSize: '1.1rem', opacity: 0.7 }}>You are playing</div>
+                            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: selectedPairing.playingAs === 'White' ? '#fff' : '#000', textShadow: selectedPairing.playingAs === 'White' ? '0 0 10px rgba(255,255,255,0.5)' : 'none', background: selectedPairing.playingAs === 'Black' ? '#fff' : 'transparent', padding: '0 1rem', borderRadius: '8px' }}>
                                 {selectedPairing.playingAs.toUpperCase()}
                             </div>
                         </div>
 
-                        <div style={{ borderLeft: '2px solid rgba(255,255,255,0.2)', height: '100px', margin: '0 2rem' }}></div>
+                        <div style={{ borderLeft: '2px solid rgba(255,255,255,0.2)', height: '60px', margin: '0 1.5rem' }}></div>
                         
                         <div>
-                            <div style={{ fontSize: '1.5rem', opacity: 0.7 }}>Your Board Number is</div>
-                            <div style={{ fontSize: '6rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                            <div style={{ fontSize: '1.1rem', opacity: 0.7 }}>Your Board Number is</div>
+                            <div style={{ fontSize: '3.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
                                 {selectedPairing.board}
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ fontSize: '2rem', background: 'rgba(0,0,0,0.5)', padding: '1.5rem', borderRadius: '16px', display: 'inline-block' }}>
+                    <div style={{ fontSize: '1.3rem', background: 'rgba(0,0,0,0.5)', padding: '1rem', borderRadius: '12px', display: 'inline-block' }}>
                         <span style={{ opacity: 0.7 }}>Against:</span> <strong>{selectedPairing.opponent.name} {selectedPairing.opponent.rating ? `(${selectedPairing.opponent.rating})` : ''}</strong>
                     </div>
 

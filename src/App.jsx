@@ -19,7 +19,7 @@ const App = () => {
     const [rounds, setRounds] = useState([]);
     const [tournamentStarted, setTournamentStarted] = useState(false);
     const [tournamentMeta, setTournamentMeta] = useState({
-        organizer: '', federation: '', director: '', arbiter: '', timeControl: '', location: '',
+        name: '', organizer: '', federation: '', director: '', arbiter: '', timeControl: '', location: '',
         rounds: 5, type: 'Swiss', calculation: 'FIDE', date: new Date().toISOString().split('T')[0],
         tieBreaks: ['Points', 'BH-C1', 'BH', 'Wins', 'Direct', 'SB', 'BW']
     });
@@ -54,22 +54,24 @@ const App = () => {
             const dbPlayers = await loadFromDB('players', []);
             const dbRounds = await loadFromDB('rounds', []);
             const dbStarted = await loadFromDB('tournamentStarted', false);
-            const dbMeta = await loadFromDB('tournamentMeta', {
-                organizer: '', federation: '', director: '', arbiter: '', timeControl: '', location: '',
+            const defaultMeta = {
+                name: '', organizer: '', federation: '', director: '', arbiter: '', timeControl: '', location: '',
                 rounds: 5, type: 'Swiss', calculation: 'FIDE', date: new Date().toISOString().split('T')[0],
                 tieBreaks: ['Points', 'BH-C1', 'BH', 'Wins', 'Direct', 'SB', 'BW']
-            });
+            };
+            const dbMeta = await loadFromDB('tournamentMeta', defaultMeta);
+            const mergedMeta = { ...defaultMeta, ...dbMeta };
             const dbUsers = await loadFromDB('users', []);
             const dbCurrentUser = await loadFromDB('currentUser', null);
             const dbTheme = await loadFromDB('theme', 'dark');
 
-            setPlayers(dbPlayers);
-            setRounds(dbRounds);
-            setTournamentStarted(dbStarted);
-            setTournamentMeta(dbMeta);
-            setUsers(dbUsers);
+            setPlayers(Array.isArray(dbPlayers) ? dbPlayers : []);
+            setRounds(Array.isArray(dbRounds) ? dbRounds : []);
+            setTournamentStarted(!!dbStarted);
+            setTournamentMeta(mergedMeta);
+            setUsers(Array.isArray(dbUsers) ? dbUsers : []);
             setCurrentUser(dbCurrentUser);
-            setTheme(dbTheme);
+            setTheme(dbTheme || 'dark');
             setDbInitialized(true);
         };
         loadInitialData();
@@ -1141,6 +1143,10 @@ const TournamentDetailsView = ({ tournamentMeta, setTournamentMeta, setCurrentVi
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '1rem', color: 'var(--primary)', fontWeight: 'bold' }}>Tournament Name</label>
+                <input value={tournamentMeta.name || ''} onChange={e => setTournamentMeta({ ...tournamentMeta, name: e.target.value })} placeholder="e.g. 1st Annual Chess Championship" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'inherit' }} />
+            </div>
             <div className="form-group" style={{ gridColumn: '1 / -1', border: '1px solid var(--primary)', padding: '1rem', borderRadius: '8px', background: 'rgba(0,0,0,0.1)' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '1rem', color: 'var(--primary)', fontWeight: 'bold' }}>Tournament System</label>
                 <select value={tournamentMeta.type} onChange={e => setTournamentMeta({ ...tournamentMeta, type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'inherit' }}>

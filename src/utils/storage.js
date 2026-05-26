@@ -15,8 +15,11 @@ export const saveToDB = async (key, data) => {
 export const loadFromDB = async (key, defaultValue = null) => {
     try {
         const item = localStorage.getItem(`chesspairzzz_${key}`);
-        if (item) {
-            return JSON.parse(item);
+        if (item !== null && item !== undefined && item !== 'null' && item !== 'undefined') {
+            const parsed = JSON.parse(item);
+            if (parsed !== null && parsed !== undefined) {
+                return parsed;
+            }
         }
         return defaultValue;
     } catch (e) {

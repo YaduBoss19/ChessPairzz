@@ -48,7 +48,14 @@ export const generateRound1 = (players) => {
 /**
  * Calculates current standings based on tournament history with FIDE tie-breaks
  */
-export const calculateStandings = (players, rounds, tieBreaks = ['Points', 'BH-C1', 'BH', 'Wins', 'Direct', 'SB', 'BW']) => {
+export const calculateStandings = (players, rounds, tieBreaks) => {
+    if (!Array.isArray(players)) return [];
+    if (!Array.isArray(rounds)) return [];
+    // Ensure default tiebreaks if missing or empty
+    if (!tieBreaks || tieBreaks.length === 0) {
+        tieBreaks = ['Points', 'BH-C1', 'BH', 'Wins', 'Direct', 'SB', 'BW'];
+    }
+
     const standings = players.map(p => ({
         ...p,
         points: 0,
@@ -69,11 +76,14 @@ export const calculateStandings = (players, rounds, tieBreaks = ['Points', 'BH-C
     }, {});
 
     rounds.forEach(round => {
+        if (!round || !Array.isArray(round.pairings)) return;
         round.pairings.forEach(game => {
             if (!game.result) return;
 
-            const whitePlayer = playerMap[game.white.id];
-            const blackPlayer = playerMap[game.black.id];
+            const whitePlayer = playerMap[game.white?.id];
+            const blackPlayer = playerMap[game.black?.id];
+
+            if (!whitePlayer || !blackPlayer) return;
 
             whitePlayer.opponents.push(blackPlayer.id);
             blackPlayer.opponents.push(whitePlayer.id);
@@ -104,9 +114,11 @@ export const calculateStandings = (players, rounds, tieBreaks = ['Points', 'BH-C
         });
 
         if (round.bye) {
-            const byePlayer = playerMap[round.bye.id];
-            byePlayer.points += 1;
-            byePlayer.wins += 1; // FIDE usually counts BYE as a win for tie-breaks
+            const byePlayer = playerMap[round.bye?.id];
+            if (byePlayer) {
+                byePlayer.points += 1;
+                byePlayer.wins += 1; // FIDE usually counts BYE as a win for tie-breaks
+            }
         }
     });
 
@@ -167,6 +179,8 @@ export const calculateStandings = (players, rounds, tieBreaks = ['Points', 'BH-C
  * Uses a greedy approach for simplicity: match highest available players
  */
 export const generateSubsequentRound = (players, rounds) => {
+    if (!Array.isArray(players)) return { pairings: [], bye: null };
+    if (!Array.isArray(rounds)) return { pairings: [], bye: null };
     const standings = calculateStandings(players, rounds);
     const n = standings.length;
     const pairings = [];
@@ -234,6 +248,7 @@ export const generateSubsequentRound = (players, rounds) => {
  * Generates Round Robin pairings for a specific round
  */
 export const generateRoundRobinPairings = (players, roundNumber) => {
+    if (!Array.isArray(players)) return { pairings: [], bye: null };
     let participants = [...players].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     const n = participants.length;
     
